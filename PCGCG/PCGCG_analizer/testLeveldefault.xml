@@ -1,0 +1,42 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<Levels>
+  <Level1>
+    <Description />
+    <Tips />
+    <BallStartingPosition X="668" Y="668" />
+    <SquareStartingPosition X="668" Y="668" />
+    <Collectibles>
+    </Collectibles>
+    <GreenObstacles />
+    <BlackObstacles>
+    </BlackObstacles>
+    <YellowObstacles />
+    <GreenElevators />
+    <BlackElevators />
+    <YellowElevators />
+    <OrangeElevators />
+    <HighScores>
+      <HighScore name="" value="0" />
+      <HighScore name="" value="0" />
+      <HighScore name="" value="0" />
+    </HighScores>
+  </Level1>
+  <Level2>
+    <Description />
+    <Tips />
+    <BallStartingPosition X="184" Y="664" />
+    <SquareStartingPosition X="264" Y="664" />
+    <Collectibles>
+      <Collectible X="104" Y="88" />
+    </Collectibles>
+    <GreenObstacles />
+    <BlackObstacles>
+      <Obstacle width="128" height="32" X="504" Y="200" centered="false" />
+      <Obstacle width="128" height="32" X="232" Y="344" centered="false" />
+      <Obstacle width="144" height="32" X="808" Y="488" centered="false" />
+    </BlackObstacles>
+    <YellowObstacles />
+    <GreenElevators />
+    <OrangeElevators />
+  </Level2>
+</Levels>
