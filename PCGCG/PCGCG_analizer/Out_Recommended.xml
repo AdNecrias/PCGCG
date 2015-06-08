@@ -3,9 +3,10 @@
   <Level1>
   <Description />
   <Tips />
-  <BallStartingPosition X="772" Y="350" />
-  <SquareStartingPosition X="497" Y="350" />
+  <BallStartingPosition X="640" Y="710" />
+  <SquareStartingPosition X="640" Y="710" />
   <Collectibles>
+   <Collectible X="772" Y="350" />
    <Collectible X="636" Y="350" />
   </Collectibles>
   <GreenObstacles>

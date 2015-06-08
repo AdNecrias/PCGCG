@@ -24,14 +24,15 @@ public class Runner {
 
 	public static int configMode = 0;
 	public static String configPath = "";
+	public static String configOutputPath = "";
 
 	public static void main(String[] args) throws Exception {
-		String[] path = {"testLevel.xml"};
+		String[] path = {"testLevel.xml","outputLevel.xml" };
 		int[] level = {3, 0};		
 		getConfig(path,level);
 		configMode=level[1];
 		configPath=path[0];
-
+		configOutputPath=path[1];
 		
 
 		Cell[][] discCells = Discretalyzer.analyse(path[0], level[0]);
@@ -83,7 +84,7 @@ public class Runner {
 		lp.setOutputPath("Out_"+configPath);
 		lp.print();*/
 		Level[] levels = {level};
-		protoGenerator.Drawer.drawLevels("Out_"+configPath, levels);
+		protoGenerator.Drawer.drawLevels(configOutputPath, levels);
 		
 		
 	}
@@ -100,6 +101,10 @@ public class Runner {
 				String tokens[] = currentLine.split(delims);
 				if(tokens[0].equals("path")) {
 					path[0] = tokens[1];
+					useful = true;
+				}
+				if(tokens[0].equals("output_path")) {
+					path[1] = tokens[1];
 					useful = true;
 				}
 				if(tokens[0].equals("level")) {
