@@ -243,9 +243,7 @@ public class Runner {
 
 		// Place gems
 
-
 		HashSet<Node> gemNodes = generateGems(origin, 5);
-
 
 		gemNodes.remove(cubeNode);
 		gemNodes.remove(ballNode);
