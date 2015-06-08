@@ -84,7 +84,7 @@ public class Runner {
 		lp.setOutputPath("Out_"+configPath);
 		lp.print();*/
 		Level[] levels = {level};
-		protoGenerator.Drawer.drawLevels(configOutputPath, levels);
+		protoGenerator.Drawer.drawLevels(configOutputPath + "Out_" + configPath, levels);
 		
 		
 	}
@@ -126,7 +126,7 @@ public class Runner {
 		BufferedWriter out;
 		try {
 			out = new BufferedWriter(new FileWriter(in));
-			out.write("path=testLevel.xml\nlevel=2\n");
+			out.write("path=testLevel.xml\noutput_path=testLevel.xml\nlevel=2\n");
 			out.write("//mode 0:Cooperative target, all reachable gems; 1:Cooperative target, only interesting(cooperation required) gems; 2: Discrete\nmode=0\n");
 			out.close();
 		} catch (IOException e) {
