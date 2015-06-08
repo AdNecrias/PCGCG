@@ -3,6 +3,8 @@ package analyzer;
 import java.awt.geom.Point2D;
 
 public class Cell {
+	public int ballArea = 0;
+	public int cubeArea = 0;
 	public boolean ball = false;
 	public Point2D topleft, botright;
 	public double sizeX, sizeY;

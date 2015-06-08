@@ -25,6 +25,7 @@ public class Runner {
 	public static int configMode = 0;
 	public static String configPath = "";
 	public static String configOutputPath = "";
+	public static boolean visual = true;
 
 	public static void main(String[] args) throws Exception {
 		String[] path = {"testLevel.xml","outputLevel.xml" };
@@ -37,18 +38,19 @@ public class Runner {
 
 		Cell[][] discCells = Discretalyzer.analyse(path[0], level[0]);
 		ArrayList<Node> n = Analyzer.analyse(path[0], level[0]);
-		GraphPanel gp = new GraphPanel();
-		boolean[] graphsDone = new boolean[1];
-		graphsDone[0] = false;
-		gp.fakeMain(null, graphsDone);
-		DiscreteViewer.run(discCells);
-		while(!graphsDone[0]) { //Wait for Graphs Panel to initialize
-			wasteTime(1);
-		}
-		drawGraph(n, gp.graphPanel);
 		ArrayList<Node> ngems = generate(n, discCells);
-		generateDraw(ngems , gp.graphPanel);
-		
+		if(visual) {
+			GraphPanel gp = new GraphPanel();
+			boolean[] graphsDone = new boolean[1];
+			graphsDone[0] = false;
+			gp.fakeMain(null, graphsDone);
+			DiscreteViewer.run(discCells);
+			while(!graphsDone[0]) { //Wait for Graphs Panel to initialize
+				wasteTime(1);
+			}
+			drawGraph(n, gp.graphPanel);
+			generateDraw(ngems , gp.graphPanel);
+		}		
 		generateLevel(n, ngems);
 		System.out.println("End.");
 	}
@@ -246,15 +248,92 @@ public class Runner {
 		output.add(cubeNode);
 		output.add(ballNode);
 
-		// Place gems
-
-		HashSet<Node> gemNodes = generateGems(origin, 5);
+		int currBallArea = 0, currCubeArea = 0;
+		for(int i = 0; i < discCells.length -1; i++) {
+			for(int j = 0; j < discCells[0].length -1; j++) {
+				if(discCells[i][j].ball) {
+					if(i > 0 && j > 0) {
+						if(discCells[i-1][j].ball) {
+							discCells[i][j].ballArea = discCells[i-1][j].ballArea;
+						} else if(discCells[i][j-1].ball) {
+							discCells[i][j].ballArea = discCells[i][j-1].ballArea;
+						} else {
+							discCells[i][j].ballArea = ++currBallArea;
+						}
+					} else {
+						discCells[i][j].ballArea = ++currBallArea;
+					}					
+				}
+				
+				if(discCells[i][j].cube) {
+					if(i > 0 && j > 0) {
+						if(discCells[i-1][j].cube) {
+							discCells[i][j].cubeArea = discCells[i-1][j].cubeArea;
+						} else if(discCells[i][j-1].cube) {
+							discCells[i][j].cubeArea = discCells[i][j-1].cubeArea;
+						} else {
+							discCells[i][j].cubeArea = ++currCubeArea;
+						}
+					} else {
+						discCells[i][j].cubeArea = ++currCubeArea;
+					}					
+				}
+			}
+		}
+		// Second pass
+		for(int i = 0; i < discCells.length -1; i++) {
+			for(int j = 0; j < discCells[0].length -1; j++) {
+				
+				if(i > 0 && j > 0 && i < discCells.length-1 && j < discCells[0].length-1) {
+					if(discCells[i][j].cube) {
+						discCells[i][j].cubeArea = mincubeCell(i,j, discCells);
+					}
+				}
+				
+				System.out.print(discCells[i][j].cubeArea + " ");
+			}
+			System.out.print(" End\n");
+		}
+		
+		// chose gem nodes
+		
+		HashSet<Node> gemNodes = generateGems(origin, 5, discCells);
 
 		gemNodes.remove(cubeNode);
 		gemNodes.remove(ballNode);
 
 		output.addAll(gemNodes);
 		return output;
+	}
+
+	private static int mincubeCell(int i, int j, Cell[][] discCells) { // Trocar pra HASH MAP
+		int min = 10000000;
+		if(discCells[i-1][j].cubeArea != 0 && discCells[i-1][j].cubeArea < min ) {
+			min = discCells[i-1][j].cubeArea;
+		}
+		if(discCells[i-1][j-1].cubeArea != 0 && discCells[i-1][j-1].cubeArea < min ) {
+			min = discCells[i-1][j-1].cubeArea;
+		}
+		if(discCells[i-1][j+1].cubeArea != 0 && discCells[i-1][j+1].cubeArea < min ) {
+			min = discCells[i-1][j+1].cubeArea;
+		}
+		if(discCells[i+1][j].cubeArea != 0 && discCells[i+1][j].cubeArea < min ) {
+			min = discCells[i+1][j].cubeArea;
+		}
+		if(discCells[i+1][j-1].cubeArea != 0 && discCells[i+1][j-1].cubeArea < min ) {
+			min = discCells[i+1][j-1].cubeArea;
+		}
+		if(discCells[i+1][j+1].cubeArea != 0 && discCells[i+1][j+1].cubeArea < min ) {
+			min = discCells[i+1][j+1].cubeArea;
+		}
+		if(discCells[i][j-1].cubeArea != 0 && discCells[i][j-1].cubeArea < min ) {
+			min = discCells[i][j-1].cubeArea;
+		}
+		if(discCells[i][j+1].cubeArea != 0 && discCells[i][j+1].cubeArea < min ) {
+			min = discCells[i][j+1].cubeArea;
+		}
+		
+		return min;
 	}
 
 	public static void drawGraph(ArrayList<Node> nodes, GraphPanel gp) {
@@ -284,20 +363,20 @@ public class Runner {
 
 	}
 
-	public static HashSet<Node> generateGems(Node origin, int depth) {
+	public static HashSet<Node> generateGems(Node origin, int depth, Cell[][] discCells) {
 		HashSet<Node> gemNodes=new HashSet<Node>();
 		for (Link l : origin.links) {
 			if(configMode == 0) {
 				if(l.getChannel() != 0) {
 					gemNodes.add(l.target);
 					if(depth > 0)
-						gemNodes.addAll(generateGems(l.target, depth-1));
+						gemNodes.addAll(generateGems(l.target, depth-1, discCells));
 				}
 			} else if(configMode == 1 || configMode == 3) {
 				if(l.getChannel() > 3) {
 					gemNodes.add(l.target);
 					if(depth > 0)
-						gemNodes.addAll(generateGems(l.target, depth-1));
+						gemNodes.addAll(generateGems(l.target, depth-1, discCells));
 				}
 			}
 		}
