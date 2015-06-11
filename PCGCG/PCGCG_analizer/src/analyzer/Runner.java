@@ -25,7 +25,7 @@ public class Runner {
 	public static int configMode = 0;
 	public static String configPath = "";
 	public static String configOutputPath = "";
-	public static boolean visual = true;
+	public static boolean visual = false;
 
 	public static void main(String[] args) throws Exception {
 		String[] path = {"testLevel.xml","outputLevel.xml" };
@@ -51,44 +51,50 @@ public class Runner {
 			drawGraph(n, gp.graphPanel);
 			generateDraw(ngems , gp.graphPanel);
 		}		
-		generateLevel(n, ngems);
+		generateLevel(n, ngems, discCells);
 		System.out.println("End.");
 	}
 
-	public static void generateLevel(ArrayList<Node> n, ArrayList<Node> ngems) {
-		Level level = new Level();
-		
-		for(Node node : n) {
-			level.addComponent(node.block);
-		}
-		Node cube = ngems.get(2), ball = ngems.get(3);
-		int p1X =0, p1Y=0, p2X=0, p2Y=0;
-		//TODO randomize
-		p1X= (int) cube.block.getLandingArea(100).getCenterX();
-		p1Y= (int) cube.block.getLandingArea(100).getCenterY();
-		p2X= (int) ball.block.getLandingArea(100).getCenterX();
-		p2Y= (int) ball.block.getLandingArea(100).getCenterY();
-		
-		level.setPlayer1(new PlayerComponent(p1X, p1Y));
-		level.setPlayer2(new PlayerComponent(p2X, p2Y));
-
-		for(int i= 4; i < ngems.size(); i++) {
-			Node a = ngems.get(i);
-			//TODO randomize
-			int pX = (int) a.block.getLandingArea(100).getCenterX();
-			int pY = (int) a.block.getLandingArea(100).getCenterY();
-			level.addComponent(new Gem(pX, pY));
+	public static void generateLevel(ArrayList<Node> n, ArrayList<Node> ngems, Cell[][] discCells) {
+		boolean done = false;
+		while(!done) {
+			Level level = new Level();
+			Random rnd = new Random(System.currentTimeMillis());
 			
+			for(Node node : n) {
+				level.addComponent(node.block);
+			}
+			Node cube = ngems.get(2), ball = ngems.get(3);
+			int p1X =0, p1Y=0, p2X=0, p2Y=0;
+			p1X= (int) cube.block.getLandingArea(100).getCenterX();
+			p1Y= (int) cube.block.getLandingArea(100).getCenterY();
+			p2X= (int) ball.block.getLandingArea(100).getCenterX();
+			p2Y= (int) ball.block.getLandingArea(100).getCenterY();
+			if(p1X < p2X + 25 && p1X > p2X - 25)
+				if(p1Y < p2Y + 25 && p1Y > p2Y  - 25)
+					p2Y -= 100;
+			
+			
+			level.setPlayer1(new PlayerComponent(p2X, p2Y));
+			level.setPlayer2(new PlayerComponent(p1X, p1Y));
+	
+			for(int i= 4; i < ngems.size(); i++) {
+				Node a = ngems.get(i);
+				int pX = (int) (a.block.getLandingArea(100).getX() + a.block.getLandingArea(100).getWidth());
+				int pY = (int) (a.block.getLandingArea(100).getY() + a.block.getLandingArea(100).getHeight());
+				pX -= rnd.nextInt((int) (pX - a.block.getLandingArea(100).getX()));
+				pY -= rnd.nextInt((int) (pY - a.block.getLandingArea(100).getY()));
+				level.addComponent(new Gem(pX, pY));
+			}
+			/*
+			LevelPrinter lp = new LevelPrinter();
+			lp.setLevel(level);
+			lp.setOutputPath("Out_"+configPath);
+			lp.print();*/
+			Level[] levels = {level};
+			protoGenerator.Drawer.drawLevels(configOutputPath + "Out_" + configPath, levels);
+			done = true;
 		}
-		/*
-		LevelPrinter lp = new LevelPrinter();
-		lp.setLevel(level);
-		lp.setOutputPath("Out_"+configPath);
-		lp.print();*/
-		Level[] levels = {level};
-		protoGenerator.Drawer.drawLevels(configOutputPath + "Out_" + configPath, levels);
-		
-		
 	}
 
 	private static void getConfig(String[] path, int[] level) {
@@ -158,6 +164,9 @@ public class Runner {
 
 	}
 
+	/*
+	 * Generates Gems
+	 */
 	private static ArrayList<Node> generate(ArrayList<Node> n, Cell[][] discCells) {
 		ArrayList<Node> output=new ArrayList<Node>();
 		//find cooperation target.
@@ -213,12 +222,25 @@ public class Runner {
 		output.add(target);
 		output.add(origin);
 
+		ConnectedComponentTwoPass.pass(discCells);
+		/* Print Cells*//* * /
+		for (int i = 0; i < discCells.length -1; i++) {
+			for (int j = 0; j < discCells[0].length-1; j++) {
+				System.out.print(discCells[i][j].ballArea + " ");
+			}
+			System.out.print("\n");
+		}
+		/**/
 
 		// Place players
 
 		ArrayList<Node> validBall=new ArrayList<Node>(), validCube=new ArrayList<Node>();
 		validCube.add(origin);
-		validBall.add(origin);
+		Cell tCell = getCell(discCells, (int)target.block.getLandingArea(100).getCenterX(), (int)target.block.getLandingArea(100).getCenterY());
+		Cell oCell = getCell(discCells, (int)origin.block.getLandingArea(100).getCenterX(), (int)origin.block.getLandingArea(100).getCenterY());
+		if(tCell.ballArea == oCell.ballArea) {
+			validBall.add(origin);
+		}
 
 		for(Node node : n) {
 			if(!node.equals(target)) {
@@ -229,14 +251,17 @@ public class Runner {
 						}
 					}
 					if(link.target.equals(target) || validBall.contains(link.target)) {
-						if(link.isBall()) {
-							validBall.add(link.origin);
-						} else
-							if(link.isBallWithCube()) {
-								if(validCube.contains(link.origin)) {
-									validBall.add(link.origin);
-								}							
-							}
+						Cell nCell = getCell(discCells, (int)link.target.block.getLandingArea(100).getCenterX(), (int)link.target.block.getLandingArea(100).getCenterY());
+						if(tCell.ballArea == nCell.ballArea) {
+							if(link.isBall()) {
+								validBall.add(link.origin);
+							} else
+								if(link.isBallWithCube()) {
+									if(validCube.contains(link.origin)) {
+										validBall.add(link.origin);
+									}							
+								}
+						}
 					}
 				}
 			}
@@ -247,17 +272,6 @@ public class Runner {
 		Node ballNode = validBall.get(bindex);
 		output.add(cubeNode);
 		output.add(ballNode);
-		
-		ConnectedComponentTwoPass.pass(discCells);
-		/* Print Cells*//* * /
-		for (int i = 0; i < discCells.length -1; i++) {
-			for (int j = 0; j < discCells[0].length-1; j++) {
-				System.out.print(discCells[i][j].ballArea + " ");
-			}
-			System.out.print("\n");
-		}
-		/**/
-		
 		
 		// chose gem nodes
 		
