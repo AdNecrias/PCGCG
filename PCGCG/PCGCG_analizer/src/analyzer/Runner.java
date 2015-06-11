@@ -247,53 +247,17 @@ public class Runner {
 		Node ballNode = validBall.get(bindex);
 		output.add(cubeNode);
 		output.add(ballNode);
-
-		int currBallArea = 0, currCubeArea = 0;
-		for(int i = 0; i < discCells.length -1; i++) {
-			for(int j = 0; j < discCells[0].length -1; j++) {
-				if(discCells[i][j].ball) {
-					if(i > 0 && j > 0) {
-						if(discCells[i-1][j].ball) {
-							discCells[i][j].ballArea = discCells[i-1][j].ballArea;
-						} else if(discCells[i][j-1].ball) {
-							discCells[i][j].ballArea = discCells[i][j-1].ballArea;
-						} else {
-							discCells[i][j].ballArea = ++currBallArea;
-						}
-					} else {
-						discCells[i][j].ballArea = ++currBallArea;
-					}					
-				}
-				
-				if(discCells[i][j].cube) {
-					if(i > 0 && j > 0) {
-						if(discCells[i-1][j].cube) {
-							discCells[i][j].cubeArea = discCells[i-1][j].cubeArea;
-						} else if(discCells[i][j-1].cube) {
-							discCells[i][j].cubeArea = discCells[i][j-1].cubeArea;
-						} else {
-							discCells[i][j].cubeArea = ++currCubeArea;
-						}
-					} else {
-						discCells[i][j].cubeArea = ++currCubeArea;
-					}					
-				}
+		
+		ConnectedComponentTwoPass.pass(discCells);
+		/* Print Cells*//* * /
+		for (int i = 0; i < discCells.length -1; i++) {
+			for (int j = 0; j < discCells[0].length-1; j++) {
+				System.out.print(discCells[i][j].ballArea + " ");
 			}
+			System.out.print("\n");
 		}
-		// Second pass
-		for(int i = 0; i < discCells.length -1; i++) {
-			for(int j = 0; j < discCells[0].length -1; j++) {
-				
-				if(i > 0 && j > 0 && i < discCells.length-1 && j < discCells[0].length-1) {
-					if(discCells[i][j].cube) {
-						discCells[i][j].cubeArea = mincubeCell(i,j, discCells);
-					}
-				}
-				
-				System.out.print(discCells[i][j].cubeArea + " ");
-			}
-			System.out.print(" End\n");
-		}
+		/**/
+		
 		
 		// chose gem nodes
 		
@@ -304,36 +268,6 @@ public class Runner {
 
 		output.addAll(gemNodes);
 		return output;
-	}
-
-	private static int mincubeCell(int i, int j, Cell[][] discCells) { // Trocar pra HASH MAP
-		int min = 10000000;
-		if(discCells[i-1][j].cubeArea != 0 && discCells[i-1][j].cubeArea < min ) {
-			min = discCells[i-1][j].cubeArea;
-		}
-		if(discCells[i-1][j-1].cubeArea != 0 && discCells[i-1][j-1].cubeArea < min ) {
-			min = discCells[i-1][j-1].cubeArea;
-		}
-		if(discCells[i-1][j+1].cubeArea != 0 && discCells[i-1][j+1].cubeArea < min ) {
-			min = discCells[i-1][j+1].cubeArea;
-		}
-		if(discCells[i+1][j].cubeArea != 0 && discCells[i+1][j].cubeArea < min ) {
-			min = discCells[i+1][j].cubeArea;
-		}
-		if(discCells[i+1][j-1].cubeArea != 0 && discCells[i+1][j-1].cubeArea < min ) {
-			min = discCells[i+1][j-1].cubeArea;
-		}
-		if(discCells[i+1][j+1].cubeArea != 0 && discCells[i+1][j+1].cubeArea < min ) {
-			min = discCells[i+1][j+1].cubeArea;
-		}
-		if(discCells[i][j-1].cubeArea != 0 && discCells[i][j-1].cubeArea < min ) {
-			min = discCells[i][j-1].cubeArea;
-		}
-		if(discCells[i][j+1].cubeArea != 0 && discCells[i][j+1].cubeArea < min ) {
-			min = discCells[i][j+1].cubeArea;
-		}
-		
-		return min;
 	}
 
 	public static void drawGraph(ArrayList<Node> nodes, GraphPanel gp) {
@@ -365,6 +299,8 @@ public class Runner {
 
 	public static HashSet<Node> generateGems(Node origin, int depth, Cell[][] discCells) {
 		HashSet<Node> gemNodes=new HashSet<Node>();
+		Cell originCell = getCell(discCells, origin.block.getCoordX(), origin.block.getCoordY());
+		
 		for (Link l : origin.links) {
 			if(configMode == 0) {
 				if(l.getChannel() != 0) {
@@ -373,8 +309,18 @@ public class Runner {
 						gemNodes.addAll(generateGems(l.target, depth-1, discCells));
 				}
 			} else if(configMode == 1 || configMode == 3) {
-				if(l.getChannel() > 3) {
-					gemNodes.add(l.target);
+				boolean simple = false;
+				if(simple) {
+					if(l.getChannel() > 3) {
+						gemNodes.add(l.target);
+						if(depth > 0)
+							gemNodes.addAll(generateGems(l.target, depth-1, discCells));
+					}					
+				} else {
+					if(originCell.ballArea != getCell(discCells, (int)l.target.block.getLandingArea(10).getCenterX(), (int)l.target.block.getLandingArea(10).getCenterY()).ballArea) {
+						gemNodes.add(l.target);	
+					}
+					gemNodes.add(l.target);	
 					if(depth > 0)
 						gemNodes.addAll(generateGems(l.target, depth-1, discCells));
 				}
@@ -383,6 +329,17 @@ public class Runner {
 		return gemNodes;
 	}
 
+	private static Cell getCell(Cell[][] discCells, int coordX, int coordY) {
+		for (int i = 0; i < discCells.length -1; i++) {
+			for (int j = 0; j < discCells[0].length-1; j++) {
+				Rectangle r = new Rectangle((int) discCells[i][j].topleft.getX(), (int) discCells[i][j].topleft.getY(), (int) discCells[i][j].sizeX, (int) discCells[i][j].sizeY);
+				if(r.contains(coordX, coordY)) {
+					return discCells[i][j];
+				}
+			}
+		}
+		return null;
+	}
 
 	public static void wasteTime(int t) {
 		int counter = 0;
