@@ -3,6 +3,7 @@ package analyzer;
 import java.awt.Color;
 import java.awt.Point;
 import java.awt.Rectangle;
+import java.awt.geom.Rectangle2D;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -25,7 +26,7 @@ public class Runner {
 	public static int configMode = 0;
 	public static String configPath = "";
 	public static String configOutputPath = "";
-	public static boolean visual = false;
+	public static boolean visual = true;
 
 	public static void main(String[] args) throws Exception {
 		String[] path = {"testLevel.xml","outputLevel.xml" };
@@ -70,6 +71,45 @@ public class Runner {
 			p1Y= (int) cube.block.getLandingArea(100).getCenterY();
 			p2X= (int) ball.block.getLandingArea(100).getCenterX();
 			p2Y= (int) ball.block.getLandingArea(100).getCenterY();
+			boolean placed = false;
+			Node target = ngems.get(0);
+			Node origin = ngems.get(1);
+			Rectangle2D landingAreaBall = ball.block.getLandingArea(100);
+			Rectangle2D landingAreaCube = cube.block.getLandingArea(100);
+			
+			p1X = (int) (rnd.nextInt(((int)landingAreaCube.getWidth())) + landingAreaCube.getX()) ;
+			p1Y = (int) (-(rnd.nextInt(((int)landingAreaCube.getHeight()))) + landingAreaCube.getY());
+			
+			Cell tCell = getCell(discCells, (int)target.block.getLandingArea(100).getCenterX(), (int)target.block.getLandingArea(100).getCenterY());
+			Cell oCell = getCell(discCells, (int)origin.block.getLandingArea(100).getCenterX(), (int)origin.block.getLandingArea(100).getCenterY());
+			
+			while(!placed) {
+				int x, y;
+				x =(int) (rnd.nextInt(((int)landingAreaCube.getWidth())) + landingAreaCube.getX()) ;
+				y =(int) (-(rnd.nextInt(((int)landingAreaCube.getHeight()))) + landingAreaCube.getY());
+				
+				oCell = getCell(discCells, x, y);
+				if(oCell.occupied) {
+					continue;
+				}
+				p1X = (int)(oCell.topleft.getX() + oCell.sizeX/2);
+				p1Y = (int)(oCell.topleft.getY() + oCell.sizeY/2);
+				placed = true;
+			}
+			placed =false;
+			while(!placed) {
+				int x, y;
+				x =(int) (rnd.nextInt(((int)landingAreaBall.getWidth())) + landingAreaBall.getX()) ;
+				y =(int) (-(rnd.nextInt(((int)landingAreaBall.getHeight()))) + landingAreaBall.getY());
+				
+				oCell = getCell(discCells, x, y);
+				if(tCell.ballArea != oCell.ballArea || oCell.occupied) {
+					continue;
+				}
+				p2X = (int)(oCell.topleft.getX() + oCell.sizeX/2);
+				p2Y = (int)(oCell.topleft.getY() + oCell.sizeY/2);
+				placed = true;
+			}
 			if(p1X < p2X + 25 && p1X > p2X - 25)
 				if(p1Y < p2Y + 25 && p1Y > p2Y  - 25)
 					p2Y -= 100;
