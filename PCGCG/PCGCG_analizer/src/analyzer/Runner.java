@@ -30,7 +30,7 @@ public class Runner {
 
 	public static void main(String[] args) throws Exception {
 		String[] path = {"testLevel.xml","outputLevel.xml" };
-		int[] level = {3, 0};		
+		int[] level = {3, 0};
 		getConfig(path,level);
 		configMode=level[1];
 		configPath=path[0];
@@ -230,6 +230,13 @@ public class Runner {
 					level[1] = Integer.parseInt(tokens[1]);
 					useful = true;
 				}
+				if(tokens[0].equals("visual")) {
+					if(tokens[1].equals("true")) {
+						visual = true;
+					} else if(tokens[1].equals("false")) {
+						visual = false;
+					}
+				}
 			}
 			input.close();
 		} catch (FileNotFoundException e) {
@@ -243,6 +250,7 @@ public class Runner {
 			out = new BufferedWriter(new FileWriter(in));
 			out.write("path=testLevel.xml\noutput_path=testLevel.xml\nlevel=2\n");
 			out.write("//mode 0:Cooperative target, all reachable gems; 1:Cooperative target, only interesting(cooperation required) gems; 2: Discrete\nmode=0\n");
+			out.write("\nvisual=false");
 			out.close();
 		} catch (IOException e) {
 			e.printStackTrace();
