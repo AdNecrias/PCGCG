@@ -26,7 +26,7 @@ public class Runner {
 	public static int configMode = 0;
 	public static String configPath = "";
 	public static String configOutputPath = "";
-	public static boolean visual = true;
+	public static boolean visual = false;
 
 	public static void main(String[] args) throws Exception {
 		String[] path = {"testLevel.xml","outputLevel.xml" };
@@ -35,106 +35,173 @@ public class Runner {
 		configMode=level[1];
 		configPath=path[0];
 		configOutputPath=path[1];
-		
+		int levelsToGo = getNumLevels(path[0]);
+		int cnt = 1;
 
-		Cell[][] discCells = Discretalyzer.analyse(path[0], level[0]);
-		ArrayList<Node> n = Analyzer.analyse(path[0], level[0]);
-		ArrayList<Node> ngems = generate(n, discCells);
-		if(visual) {
-			GraphPanel gp = new GraphPanel();
-			boolean[] graphsDone = new boolean[1];
-			graphsDone[0] = false;
-			gp.fakeMain(null, graphsDone);
-			DiscreteViewer.run(discCells);
-			while(!graphsDone[0]) { //Wait for Graphs Panel to initialize
-				wasteTime(1);
+		ArrayList<Level> levels = new ArrayList<Level>();
+		if(level[0] == -1) {
+			while(cnt < levelsToGo) {
+				try {
+					System.out.println("Analysing level "+ cnt);
+					Cell[][] discCells = Discretalyzer.analyse(path[0], cnt);
+					ArrayList<Node> n = Analyzer.analyse(path[0], cnt);
+					ArrayList<Node> ngems = generate(n, discCells);
+					if(visual) {
+						GraphPanel gp = new GraphPanel();
+						boolean[] graphsDone = new boolean[1];
+						graphsDone[0] = false;
+						gp.fakeMain(null, graphsDone);
+						DiscreteViewer.run(discCells);
+						while(!graphsDone[0]) { //Wait for Graphs Panel to initialize
+							wasteTime(1);
+						}
+						drawGraph(n, gp.graphPanel);
+						generateDraw(ngems , gp.graphPanel);
+					}
+					levels.add(generateLevel(n, ngems, discCells));
+					System.out.println("Writing level "+ cnt + " done.");
+					cnt++;
+				} catch (Exception e) {
+					System.out.println("[ERROR!] Error reading level " + cnt + ", skipping.");
+					System.out.println(e);
+					//throw e;
+					cnt++;
+				}
 			}
-			drawGraph(n, gp.graphPanel);
-			generateDraw(ngems , gp.graphPanel);
-		}		
-		generateLevel(n, ngems, discCells);
+		} else {
+			System.out.println("Analysing level "+ level[0]);
+			Cell[][] discCells = Discretalyzer.analyse(path[0], level[0]);
+			ArrayList<Node> n = Analyzer.analyse(path[0], level[0]);
+			ArrayList<Node> ngems = generate(n, discCells);
+			if(visual) {
+				GraphPanel gp = new GraphPanel();
+				boolean[] graphsDone = new boolean[1];
+				graphsDone[0] = false;
+				gp.fakeMain(null, graphsDone);
+				DiscreteViewer.run(discCells);
+				while(!graphsDone[0]) { //Wait for Graphs Panel to initialize
+					wasteTime(1);
+				}
+				drawGraph(n, gp.graphPanel);
+				generateDraw(ngems , gp.graphPanel);
+			}
+			levels.add(generateLevel(n, ngems, discCells));
+		}
+
+		
+		
+		Level[] levelsArray = new Level[levels.size()]; 
+		levelsArray = levels.toArray(levelsArray);
+		protoGenerator.Drawer.drawLevels(configOutputPath + "Out_" + configPath, levelsArray);
 		System.out.println("End.");
 	}
 
-	public static void generateLevel(ArrayList<Node> n, ArrayList<Node> ngems, Cell[][] discCells) {
-		boolean done = false;
-		while(!done) {
-			Level level = new Level();
-			Random rnd = new Random(System.currentTimeMillis());
-			
-			for(Node node : n) {
-				level.addComponent(node.block);
-			}
-			Node cube = ngems.get(2), ball = ngems.get(3);
-			int p1X =0, p1Y=0, p2X=0, p2Y=0;
-			p1X= (int) cube.block.getLandingArea(100).getCenterX();
-			p1Y= (int) cube.block.getLandingArea(100).getCenterY();
-			p2X= (int) ball.block.getLandingArea(100).getCenterX();
-			p2Y= (int) ball.block.getLandingArea(100).getCenterY();
-			boolean placed = false;
-			Node target = ngems.get(0);
-			Node origin = ngems.get(1);
-			Rectangle2D landingAreaBall = ball.block.getLandingArea(100);
-			Rectangle2D landingAreaCube = cube.block.getLandingArea(100);
-			
-			p1X = (int) (rnd.nextInt(((int)landingAreaCube.getWidth())) + landingAreaCube.getX()) ;
-			p1Y = (int) (-(rnd.nextInt(((int)landingAreaCube.getHeight()))) + landingAreaCube.getY());
-			
-			Cell tCell = getCell(discCells, (int)target.block.getLandingArea(100).getCenterX(), (int)target.block.getLandingArea(100).getCenterY());
-			Cell oCell = getCell(discCells, (int)origin.block.getLandingArea(100).getCenterX(), (int)origin.block.getLandingArea(100).getCenterY());
-			
-			while(!placed) {
-				int x, y;
-				x =(int) (rnd.nextInt(((int)landingAreaCube.getWidth())) + landingAreaCube.getX()) ;
-				y =(int) (-(rnd.nextInt(((int)landingAreaCube.getHeight()))) + landingAreaCube.getY());
+	private static int getNumLevels(String path) {
+		File in = new File(path);
+		BufferedReader input = null;
+		boolean inLevel = false;
+		int numberOfLevels = 0;
+		try {
+			input = new BufferedReader(new FileReader(in));
+			String currentLine; 
+			while ((currentLine = input.readLine()) != null) {
+				String delims = "[\n\t\r<]+";
+				String tokens[] = currentLine.split(delims);
 				
-				oCell = getCell(discCells, x, y);
-				if(oCell.occupied) {
-					continue;
+				if(inLevel) {
+					if(tokens[1].contains("/Level")) {
+						inLevel= false;
+					}
+				} else if(tokens[1].contains("Level")) {
+					inLevel= true;
+					numberOfLevels++;
 				}
-				p1X = (int)(oCell.topleft.getX() + oCell.sizeX/2);
-				p1Y = (int)(oCell.topleft.getY() + oCell.sizeY/2);
-				placed = true;
+					
 			}
-			placed =false;
-			while(!placed) {
-				int x, y;
-				x =(int) (rnd.nextInt(((int)landingAreaBall.getWidth())) + landingAreaBall.getX()) ;
-				y =(int) (-(rnd.nextInt(((int)landingAreaBall.getHeight()))) + landingAreaBall.getY());
-				
-				oCell = getCell(discCells, x, y);
-				if(tCell.ballArea != oCell.ballArea || oCell.occupied) {
-					continue;
-				}
-				p2X = (int)(oCell.topleft.getX() + oCell.sizeX/2);
-				p2Y = (int)(oCell.topleft.getY() + oCell.sizeY/2);
-				placed = true;
+			input.close();
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return numberOfLevels;
+	}
+
+	public static Level generateLevel(ArrayList<Node> n, ArrayList<Node> ngems, Cell[][] discCells) {
+		Level level = new Level();
+		Random rnd = new Random(System.currentTimeMillis());
+
+		for(Node node : n) {
+			level.addComponent(node.block);
+		}
+		Node cube = ngems.get(2), ball = ngems.get(3);
+		int p1X =0, p1Y=0, p2X=0, p2Y=0;
+		p1X= (int) cube.block.getLandingArea(100).getCenterX();
+		p1Y= (int) cube.block.getLandingArea(100).getCenterY();
+		p2X= (int) ball.block.getLandingArea(100).getCenterX();
+		p2Y= (int) ball.block.getLandingArea(100).getCenterY();
+		boolean placed = false;
+		Node target = ngems.get(0);
+		Node origin = ngems.get(1);
+		Rectangle2D landingAreaBall = ball.block.getLandingArea(100);
+		Rectangle2D landingAreaCube = cube.block.getLandingArea(100);
+
+		p1X = (int) (rnd.nextInt(((int)landingAreaCube.getWidth())) + landingAreaCube.getX()) ;
+		p1Y = (int) (-(rnd.nextInt(((int)landingAreaCube.getHeight()))) + landingAreaCube.getY());
+
+		Cell tCell = getCell(discCells, (int)target.block.getLandingArea(100).getCenterX(), (int)target.block.getLandingArea(100).getCenterY());
+		Cell oCell = getCell(discCells, (int)origin.block.getLandingArea(100).getCenterX(), (int)origin.block.getLandingArea(100).getCenterY());
+
+		while(!placed) {
+			int x, y;
+			x =(int) (rnd.nextInt(((int)landingAreaCube.getWidth())) + landingAreaCube.getX()) ;
+			y =(int) (-(rnd.nextInt(((int)landingAreaCube.getHeight()))) + landingAreaCube.getY());
+
+			oCell = getCell(discCells, x, y);
+			if(oCell.occupied) {
+				continue;
 			}
-			if(p1X < p2X + 25 && p1X > p2X - 25)
-				if(p1Y < p2Y + 25 && p1Y > p2Y  - 25)
-					p2Y -= 100;
-			
-			
-			level.setPlayer1(new PlayerComponent(p2X, p2Y));
-			level.setPlayer2(new PlayerComponent(p1X, p1Y));
-	
-			for(int i= 4; i < ngems.size(); i++) {
-				Node a = ngems.get(i);
-				int pX = (int) (a.block.getLandingArea(100).getX() + a.block.getLandingArea(100).getWidth());
-				int pY = (int) (a.block.getLandingArea(100).getY() + a.block.getLandingArea(100).getHeight());
-				pX -= rnd.nextInt((int) (pX - a.block.getLandingArea(100).getX()));
-				pY -= rnd.nextInt((int) (pY - a.block.getLandingArea(100).getY()));
-				level.addComponent(new Gem(pX, pY));
+			p1X = (int)(oCell.topleft.getX() + oCell.sizeX/2);
+			p1Y = (int)(oCell.topleft.getY() + oCell.sizeY/2);
+			placed = true;
+		}
+		placed =false;
+		while(!placed) {
+			int x, y;
+			x =(int) (rnd.nextInt(((int)landingAreaBall.getWidth())) + landingAreaBall.getX()) ;
+			y =(int) (-(rnd.nextInt(((int)landingAreaBall.getHeight()))) + landingAreaBall.getY());
+
+			oCell = getCell(discCells, x, y);
+			if(tCell.ballArea != oCell.ballArea || oCell.occupied) {
+				continue;
 			}
-			/*
+			p2X = (int)(oCell.topleft.getX() + oCell.sizeX/2);
+			p2Y = (int)(oCell.topleft.getY() + oCell.sizeY/2);
+			placed = true;
+		}
+		if(p1X < p2X + 25 && p1X > p2X - 25)
+			if(p1Y < p2Y + 25 && p1Y > p2Y  - 25)
+				p2Y -= 100;
+
+
+		level.setPlayer1(new PlayerComponent(p2X, p2Y));
+		level.setPlayer2(new PlayerComponent(p1X, p1Y));
+
+		for(int i= 4; i < ngems.size(); i++) {
+			Node a = ngems.get(i);
+			int pX = (int) (a.block.getLandingArea(100).getX() + a.block.getLandingArea(100).getWidth());
+			int pY = (int) (a.block.getLandingArea(100).getY() + a.block.getLandingArea(100).getHeight());
+			pX -= rnd.nextInt((int) (pX - a.block.getLandingArea(100).getX()));
+			pY -= rnd.nextInt((int) (pY - a.block.getLandingArea(100).getY()));
+			level.addComponent(new Gem(pX, pY));
+		}
+		/*
 			LevelPrinter lp = new LevelPrinter();
 			lp.setLevel(level);
 			lp.setOutputPath("Out_"+configPath);
 			lp.print();*/
-			Level[] levels = {level};
-			protoGenerator.Drawer.drawLevels(configOutputPath + "Out_" + configPath, levels);
-			done = true;
-		}
+		return level;
+
 	}
 
 	private static void getConfig(String[] path, int[] level) {
@@ -228,10 +295,16 @@ public class Runner {
 
 			Node rorigin=null;
 			boolean exit = false;
-			int timeout = 0;
+			int timeout = 0, timeoutLimit = 100;
 			while(!exit) {
 				timeout++;
-				rorigin = n.get(1+rnd.nextInt(n.size()-1));
+				rorigin = n.get(rnd.nextInt(n.size()));
+				if(timeout > timeoutLimit+1) {
+					System.out.println("[TIMEOUT] - No nodes, generation might fail.");
+					targets.add(n.get(0));
+					origins.add(n.get(0));
+					break;
+				}
 				if(rorigin.links.size()==0) 
 					continue;
 
@@ -243,8 +316,8 @@ public class Runner {
 					exit = true;
 					continue;
 				}
-				if(timeout > 100) {
-					System.out.println("TIMEOUT");
+				if(timeout > timeoutLimit) {
+					System.out.println("[TIMEOUT]");
 					targets.add(l.target);
 					origins.add(l.origin);
 					exit=true;
