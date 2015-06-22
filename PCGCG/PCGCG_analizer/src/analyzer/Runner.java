@@ -405,13 +405,13 @@ public class Runner {
 		output.addAll(gemNodes);
 		
 		ArrayList<Node> extraNodes = generateExtraNodes(ballNode,discCells);
-		addSome(extraNodes, output, 2, rnd);
+		if(extraNodes.size() > 0)
+			addSome(extraNodes, output, 2, rnd);
 		return output;
 	}
 
 	private static void addSome(ArrayList<Node> extraNodes,
 			ArrayList<Node> output, int number, Random rnd) {
-		
 		for (int i = 0; i < number; i++) {
 			int randomIndex = rnd.nextInt(extraNodes.size());
 			output.add(extraNodes.get(randomIndex));
