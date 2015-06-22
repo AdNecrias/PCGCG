@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.Random;
 import java.util.HashSet;
 
+import protoGenerator.Block;
 import protoGenerator.Gem;
 import protoGenerator.Level;
 import protoGenerator.PlayerComponent;
@@ -396,13 +397,42 @@ public class Runner {
 		
 		// chose gem nodes
 		
-		HashSet<Node> gemNodes = generateGems(origin, 5, discCells);
+		HashSet<Node> gemNodes = generateGems(ballNode, 5, discCells);
 
 		gemNodes.remove(cubeNode);
 		gemNodes.remove(ballNode);
 
 		output.addAll(gemNodes);
+		
+		ArrayList<Node> extraNodes = generateExtraNodes(ballNode,discCells);
+		addSome(extraNodes, output, 2, rnd);
 		return output;
+	}
+
+	private static void addSome(ArrayList<Node> extraNodes,
+			ArrayList<Node> output, int number, Random rnd) {
+		
+		for (int i = 0; i < number; i++) {
+			int randomIndex = rnd.nextInt(extraNodes.size());
+			output.add(extraNodes.get(randomIndex));
+		}
+		
+	}
+
+	private static ArrayList<Node> generateExtraNodes(Node origin,
+			Cell[][] discCells) {
+		ArrayList<Node> result = new ArrayList<Node>();
+		Cell originCell = getCell(discCells, (int) origin.block.getLandingArea(100).getCenterX(), (int) origin.block.getLandingArea(100).getCenterY());
+		for(int i=1; i< discCells.length-2; i++) {
+			for(int j=1; j< discCells[0].length-2; j++) {
+				if(discCells[i][j].ballArea != 0 && discCells[i][j].ballArea != originCell.ballArea) {
+					if( discCells[i][j].closestOccupied < 150 && discCells[i][j].closestOccupied < discCells[i][j-1].closestOccupied) {
+						result.add(new Node(new Block((int)discCells[i][j].topleft.getX(), (int)discCells[i][j].botright.getY(), (int)discCells[i][j].sizeX, 1)));
+					}
+				}
+			}
+		}
+		return result;
 	}
 
 	public static void drawGraph(ArrayList<Node> nodes, GraphPanel gp) {
