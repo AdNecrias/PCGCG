@@ -27,16 +27,21 @@ public class Runner {
 	public static int configMode = 0;
 	public static String configPath = "";
 	public static String configOutputPath = "";
+	public static String readPath = "testLevel.xml";
+	public static String writePath = "Out_testLevel.xml";
+	
 	public static boolean visual = false;
 
 	public static void main(String[] args) throws Exception {
-		String[] path = {"testLevel.xml","outputLevel.xml" };
+		String[] path = {"testLevel.xml","outputLevel.xml", readPath, writePath};
 		int[] level = {3, 0};
 		getConfig(path,level);
 		configMode=level[1];
 		configPath=path[0];
 		configOutputPath=path[1];
-		int levelsToGo = getNumLevels(path[0]);
+		readPath = path[2];
+		writePath= path[3];
+		int levelsToGo = getNumLevels(configPath+readPath);
 		int cnt = 1;
 
 		ArrayList<Level> levels = new ArrayList<Level>();
@@ -44,8 +49,8 @@ public class Runner {
 			while(cnt < levelsToGo) {
 				try {
 					System.out.println("Analysing level "+ cnt);
-					Cell[][] discCells = Discretalyzer.analyse(path[0], cnt);
-					ArrayList<Node> n = Analyzer.analyse(path[0], cnt);
+					Cell[][] discCells = Discretalyzer.analyse(configPath + readPath, cnt);
+					ArrayList<Node> n = Analyzer.analyse(configPath + readPath, cnt);
 					ArrayList<Node> ngems = generate(n, discCells);
 					if(visual) {
 						GraphPanel gp = new GraphPanel();
@@ -65,14 +70,17 @@ public class Runner {
 				} catch (Exception e) {
 					System.out.println("[ERROR!] Error reading level " + cnt + ", skipping.");
 					System.out.println(e);
+					for(StackTraceElement ste : e.getStackTrace()) {
+						System.out.println(ste);
+					}
 					//throw e;
 					cnt++;
 				}
 			}
 		} else {
 			System.out.println("Analysing level "+ level[0]);
-			Cell[][] discCells = Discretalyzer.analyse(path[0], level[0]);
-			ArrayList<Node> n = Analyzer.analyse(path[0], level[0]);
+			Cell[][] discCells = Discretalyzer.analyse(configPath + readPath, level[0]);
+			ArrayList<Node> n = Analyzer.analyse(configPath + readPath, level[0]);
 			ArrayList<Node> ngems = generate(n, discCells);
 			if(visual) {
 				GraphPanel gp = new GraphPanel();
@@ -91,10 +99,10 @@ public class Runner {
 
 		
 		
-		Level[] levelsArray = new Level[levels.size()]; 
+		Level[] levelsArray = new Level[levels.size()];
 		levelsArray = levels.toArray(levelsArray);
-		protoGenerator.Drawer.drawLevels(configOutputPath + "Out_" + configPath, levelsArray);
-		System.out.println("End.");
+		protoGenerator.Drawer.drawLevels(configPath + writePath, levelsArray);
+		System.out.println("End. Level written at: " + configPath);
 	}
 
 	private static int getNumLevels(String path) {
@@ -129,12 +137,14 @@ public class Runner {
 	}
 
 	public static Level generateLevel(ArrayList<Node> n, ArrayList<Node> ngems, Cell[][] discCells) {
+		System.out.println(" Generating Level.");
 		Level level = new Level();
 		Random rnd = new Random(System.currentTimeMillis());
 
 		for(Node node : n) {
 			level.addComponent(node.block);
 		}
+		System.out.println(" - Blocks added.");
 		Node cube = ngems.get(2), ball = ngems.get(3);
 		int p1X =0, p1Y=0, p2X=0, p2Y=0;
 		p1X= (int) cube.block.getLandingArea(100).getCenterX();
@@ -152,11 +162,25 @@ public class Runner {
 
 		Cell tCell = getCell(discCells, (int)target.block.getLandingArea(100).getCenterX(), (int)target.block.getLandingArea(100).getCenterY());
 		Cell oCell = getCell(discCells, (int)origin.block.getLandingArea(100).getCenterX(), (int)origin.block.getLandingArea(100).getCenterY());
-
+		System.out.println(" - Placing Player1");
+		boolean[][]	checkGrid = new boolean[discCells.length*(int)discCells[0][0].sizeX][discCells[0].length*(int)discCells[0][0].sizeY];
+		int timeout = 0;
+		final int timeoutValue = Integer.MAX_VALUE/10;
 		while(!placed) {
 			int x, y;
 			x =(int) (rnd.nextInt(((int)landingAreaCube.getWidth())) + landingAreaCube.getX()) ;
 			y =(int) (-(rnd.nextInt(((int)landingAreaCube.getHeight()))) + landingAreaCube.getY());
+			if(checkGrid[x][y]) {
+				if(++timeout > timeoutValue) {
+					System.out.println("[TIMEOUT] Timed out trying to place player 1. Player placement is compromised.");
+					p1X = (int)(landingAreaCube.getCenterX());
+					p1Y = (int)(landingAreaCube.getCenterY());
+					break;
+				}
+				continue;
+			} else {
+				checkGrid[x][y] = true;
+			}
 
 			oCell = getCell(discCells, x, y);
 			if(oCell.occupied) {
@@ -166,12 +190,27 @@ public class Runner {
 			p1Y = (int)(oCell.topleft.getY() + oCell.sizeY/2);
 			placed = true;
 		}
+		System.out.println(" - Placed.\n - Placing Player2");
+		checkGrid = new boolean[discCells.length*(int)discCells[0][0].sizeX][discCells[0].length*(int)discCells[0][0].sizeY];
+		timeout = 0;
 		placed =false;
 		while(!placed) {
 			int x, y;
-			x =(int) (rnd.nextInt(((int)landingAreaBall.getWidth())) + landingAreaBall.getX()) ;
-			y =(int) (-(rnd.nextInt(((int)landingAreaBall.getHeight()))) + landingAreaBall.getY());
-
+			
+			x = Math.max(1, Math.min(1200, (int) (rnd.nextInt(((int)landingAreaBall.getWidth())) + landingAreaBall.getX())));
+			y = Math.max(1, Math.min(768, (int) (-(rnd.nextInt(((int)landingAreaBall.getHeight()))) + landingAreaBall.getY())));
+			if(checkGrid[x][y]) {
+				if(++timeout > timeoutValue) {
+					System.out.println("[TIMEOUT] Timed out trying to place player 2. Player placement is compromised.");
+					p2X = (int)(landingAreaBall.getCenterX());
+					p2Y = (int)(landingAreaBall.getCenterY());
+					break;
+				}
+				continue;
+			} else {
+				checkGrid[x][y] = true;
+			}
+			
 			oCell = getCell(discCells, x, y);
 			if(tCell.ballArea != oCell.ballArea || oCell.occupied) {
 				continue;
@@ -187,6 +226,7 @@ public class Runner {
 
 		level.setPlayer1(new PlayerComponent(p2X, p2Y));
 		level.setPlayer2(new PlayerComponent(p1X, p1Y));
+		System.out.println(" - Players placed.\n - Reading Gems.");
 
 		for(int i= 4; i < ngems.size(); i++) {
 			Node a = ngems.get(i);
@@ -221,6 +261,14 @@ public class Runner {
 				}
 				if(tokens[0].equals("output_path")) {
 					path[1] = tokens[1];
+					useful = true;
+				}
+				if(tokens[0].equals("filename")) {
+					path[2] = tokens[1];
+					useful = true;
+				}
+				if(tokens[0].equals("output_filename")) {
+					path[3] = tokens[1];
 					useful = true;
 				}
 				if(tokens[0].equals("level")) {
@@ -388,11 +436,17 @@ public class Runner {
 				}
 			}
 		}
-
+		
 		int cindex = rnd.nextInt(validCube.size()), bindex = rnd.nextInt(validBall.size());
 		Node cubeNode = validCube.get(cindex);
+		if(cubeNode.equals(n.get(0))) {
+			cubeNode = validCube.get((validCube.size()) == 1 ? 0: cindex+1);
+		}
 		Node ballNode = validBall.get(bindex);
-		output.add(cubeNode);
+		output.add(ballNode);
+		if(ballNode.equals(n.get(0))) {
+			ballNode = validBall.get((validBall.size()) == 1 ? 0: bindex+1);
+		}
 		output.add(ballNode);
 		
 		// chose gem nodes

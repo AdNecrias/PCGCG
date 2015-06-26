@@ -126,16 +126,16 @@ public class Analyzer {
 					int tx = l.target.block.getCoordX();
 					int tsx = l.target.block.getSizeX();
 					int ty = l.target.block.getCoordY();
-					int tsy = l.target.block.getSizeY();
+					int tsy = l.target.block.getSizeY();					
 					if(l.origin.block.getCoordY() < l.target.block.getCoordY()) {
-						int c = (tx-closestX ) / (ty - l.origin.block.getCoordY());
-						int c2 =(tx+tsx - closestX) / (ty - l.origin.block.getCoordY());
+						int c = (tx-closestX ) / (ty - l.origin.block.getCoordY()+1);
+						int c2 =(tx+tsx - closestX) / (ty - l.origin.block.getCoordY()+1);
 						int[] xpoints = {tx+tsx, tx, tx +3000*c2,tx+tsx +3000*c};
 						int[] ypoints = {ty, ty , ty-3000, ty-3000};
 						areaBall.subtract(new Area(new Polygon(xpoints,ypoints, 4)));
 					} else {
-						int c = (tx-closestX ) / (ty+tsy - l.origin.block.getCoordY());
-						int c2 =(tx+tsx - closestX) / (ty+tsy - l.origin.block.getCoordY());
+						int c = (tx-closestX ) / (ty+tsy - l.origin.block.getCoordY()+1);
+						int c2 =(tx+tsx - closestX) / (ty+tsy - l.origin.block.getCoordY()+1);
 						int[] xpoints = {tx+tsx, tx, tx +3000*c2,tx+tsx +3000*c};
 						int[] ypoints = {ty+tsy, ty+tsy , ty+tsy-3000, ty+tsy-3000};
 						areaBall.subtract(new Area(new Polygon(xpoints,ypoints, 4)));
@@ -150,14 +150,14 @@ public class Analyzer {
 					int ty = l.target.block.getCoordY();
 					int tsy = l.target.block.getSizeY();
 					if(l.origin.block.getCoordY() < l.target.block.getCoordY()) {
-						int c = (tx-closestX ) / (ty - l.origin.block.getCoordY());
-						int c2 =(tx+tsx - closestX) / (ty - l.origin.block.getCoordY());
+						int c = (tx-closestX ) / (ty - l.origin.block.getCoordY()+1);
+						int c2 =(tx+tsx - closestX) / (ty - l.origin.block.getCoordY()+1);
 						int[] xpoints = {tx+tsx, tx, tx +3000*c2,tx+tsx +3000*c};
 						int[] ypoints = {ty, ty , ty-3000, ty-3000};
 						areaCube.subtract(new Area(new Polygon(xpoints,ypoints, 4)));
 					} else {
-						int c = (tx-closestX ) / (ty+tsy - l.origin.block.getCoordY());
-						int c2 =(tx+tsx - closestX) / (ty+tsy - l.origin.block.getCoordY());
+						int c = (tx-closestX ) / (ty+tsy - l.origin.block.getCoordY()+1);
+						int c2 =(tx+tsx - closestX) / (ty+tsy - l.origin.block.getCoordY()+1);
 						int[] xpoints = {tx+tsx, tx, tx +3000*c2,tx+tsx +3000*c};
 						int[] ypoints = {ty+tsy, ty+tsy , ty+tsy-3000, ty+tsy-3000};
 						areaCube.subtract(new Area(new Polygon(xpoints,ypoints, 4)));
@@ -173,14 +173,14 @@ public class Analyzer {
 					int ty = l.target.block.getCoordY();
 					int tsy = l.target.block.getSizeY();
 					if(l.origin.block.getCoordY() < l.target.block.getCoordY()) {
-						int c = (tx-closestX ) / (ty - l.origin.block.getCoordY());
-						int c2 =(tx+tsx - closestX) / (ty - l.origin.block.getCoordY());
+						int c = (tx-closestX ) / (ty - l.origin.block.getCoordY()+1);
+						int c2 =(tx+tsx - closestX) / (ty - l.origin.block.getCoordY()+1);
 						int[] xpoints = {tx+tsx, tx, tx +3000*c2,tx+tsx +3000*c};
 						int[] ypoints = {ty, ty , ty-3000, ty-3000};
 						smallerArea.subtract(new Area(new Polygon(xpoints,ypoints, 4)));
 					} else {
-						int c = (tx-closestX ) / (ty+tsy - l.origin.block.getCoordY());
-						int c2 =(tx+tsx - closestX) / (ty+tsy - l.origin.block.getCoordY());
+						int c = (tx-closestX ) / (ty+tsy - l.origin.block.getCoordY()+1);
+						int c2 =(tx+tsx - closestX) / (ty+tsy - l.origin.block.getCoordY()+1);
 						int[] xpoints = {tx+tsx, tx, tx +3000*c2,tx+tsx +3000*c};
 						int[] ypoints = {ty+tsy, ty+tsy , ty+tsy-3000, ty+tsy-3000};
 						smallerArea.subtract(new Area(new Polygon(xpoints,ypoints, 4)));
