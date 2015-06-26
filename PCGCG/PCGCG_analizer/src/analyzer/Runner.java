@@ -25,6 +25,7 @@ import draw.GraphNode;
 public class Runner {
 
 	public static int configMode = 0;
+	public static int configExtraGemNumber = 2;
 	public static String configPath = "";
 	public static String configOutputPath = "";
 	public static String readPath = "testLevel.xml";
@@ -51,7 +52,8 @@ public class Runner {
 					System.out.println("Analysing level "+ cnt);
 					Cell[][] discCells = Discretalyzer.analyse(configPath + readPath, cnt);
 					ArrayList<Node> n = Analyzer.analyse(configPath + readPath, cnt);
-					ArrayList<Node> ngems = generate(n, discCells);
+					System.out.println(" - Analysers done.");
+					ArrayList<Node> ngems = generate(n, discCells);	
 					if(visual) {
 						GraphPanel gp = new GraphPanel();
 						boolean[] graphsDone = new boolean[1];
@@ -220,7 +222,7 @@ public class Runner {
 			placed = true;
 		}
 		if(p1X < p2X + 25 && p1X > p2X - 25)
-			if(p1Y < p2Y + 25 && p1Y > p2Y  - 25)
+			if(p1Y < p2Y + 25 && p1Y > p2Y - 25)
 				p2Y -= 100;
 
 
@@ -332,6 +334,7 @@ public class Runner {
 	 * Generates Gems
 	 */
 	private static ArrayList<Node> generate(ArrayList<Node> n, Cell[][] discCells) {
+		System.out.println(" Gem placement\n - Finding cooperation target.");
 		ArrayList<Node> output=new ArrayList<Node>();
 		//find cooperation target.
 		ArrayList<Node> targets=new ArrayList<Node>(), origins=new ArrayList<Node>();
@@ -382,17 +385,16 @@ public class Runner {
 			}
 		}
 
-
 		int randIndex = 0;
 		randIndex = rnd.nextInt(targets.size());
 		origin = origins.get(randIndex);
 		target = targets.get(randIndex);
 
-
 		output.add(target);
 		output.add(origin);
-
+		System.out.println(" - Origin and Target selected, mapping discrete map.\n - ConnectedComponentTwoPass begin.");
 		ConnectedComponentTwoPass.pass(discCells);
+		System.out.println("  -> ConnectedComponentTwoPass Done.\n - Selecting player location.");		
 		/* Print Cells*//* * /
 		for (int i = 0; i < discCells.length -1; i++) {
 			for (int j = 0; j < discCells[0].length-1; j++) {
@@ -449,18 +451,22 @@ public class Runner {
 		}
 		output.add(ballNode);
 		
+		System.out.println(" - Player locations selected.");
 		// chose gem nodes
-		
-		HashSet<Node> gemNodes = generateGems(ballNode, 5, discCells);
+		System.out.println(" - Picking possible Gem Nodes.");
+		HashSet<Node> gemNodes = generateGems(ballNode, 8, discCells);
 
 		gemNodes.remove(cubeNode);
 		gemNodes.remove(ballNode);
 
+		System.out.println("  -> " + gemNodes.size() + " possible.");
 		output.addAll(gemNodes);
-		
+
+		System.out.println(" - Placing possible extra Gem nodes in cube only Areas.");
 		ArrayList<Node> extraNodes = generateExtraNodes(ballNode,discCells);
+		System.out.println("  -> " + extraNodes.size() + " possible, selecting " + configExtraGemNumber + ".");
 		if(extraNodes.size() > 0)
-			addSome(extraNodes, output, 2, rnd);
+			addSome(extraNodes, output, configExtraGemNumber, rnd);
 		return output;
 	}
 

@@ -17,6 +17,7 @@ import protoGenerator.Block;
 public class Analyzer {
 
 	public static ArrayList<Node> analyse(String path, int level) {
+		System.out.println(" Node Analyser: Setting up base node, reading file.");
 		boolean inLevel = false;
 		boolean inBlackObstacles = false;
 		ArrayList<Link> allLinks = new ArrayList<Link>();
@@ -76,6 +77,7 @@ public class Analyzer {
 			e.printStackTrace();
 		}
 
+		System.out.println(" - Reading file Successful, mapping links.");
 
 		for(Link l : floor.links) {
 			allLinks.add(l);
@@ -94,6 +96,8 @@ public class Analyzer {
 				}
 			}
 		}
+		
+		System.out.println(" - Creating node Areas.");
 		
 		for(Node n : allNodes) {
 			int x = n.block.getCoordX();
@@ -210,7 +214,7 @@ public class Analyzer {
 			}
 			
 		}
-		
+		System.out.println(" - Areas analysed, links classified. Removing empty links.");		
 		//clear empty Links from Nodes
 		for(Node nd : allNodes) {
 			ArrayList<Link> toRemove = new ArrayList<Link>();

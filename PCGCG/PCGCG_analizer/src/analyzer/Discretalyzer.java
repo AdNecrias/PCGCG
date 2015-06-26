@@ -17,7 +17,8 @@ public class Discretalyzer {
 	public static final int cubeHeight = 30;
 
 	public static Cell[][] analyse(String path, int level) {
-
+		System.out.println(" Discrete Analyser: Reading file, painting Node/Platform cells.");
+		
 		cellMatrix = new Cell[levelSizeX/cellSizeX+1][levelSizeY/cellSizeY+1];
 		for(int x = 0, i = 0; x < levelSizeX; x += cellSizeX) {
 			for(int y = 0, j =0; y < levelSizeY; y += cellSizeY) {
@@ -80,10 +81,14 @@ public class Discretalyzer {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+		System.out.println(" - File read, painting border cells.");
 		paintBorders();
 		
+		System.out.println(" - Calculating cell distance to painted cell.");
 		calculateProximity();
+		System.out.println(" - Mapping ball restriction.");
 		ballRestriction();
+		System.out.println(" - Mapping cube restriction.");
 		cubeRestriction();
 		
 		return cellMatrix;
