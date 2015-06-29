@@ -43,7 +43,7 @@ public class Runner {
 		readPath = path[2];
 		writePath= path[3];
 		int levelsToGo = getNumLevels(configPath+readPath);
-		int cnt = 1;
+		int cnt = 1, levelsFailed=0;
 
 		ArrayList<Level> levels = new ArrayList<Level>();
 		if(level[0] == -1) {
@@ -53,7 +53,7 @@ public class Runner {
 					Cell[][] discCells = Discretalyzer.analyse(configPath + readPath, cnt);
 					ArrayList<Node> n = Analyzer.analyse(configPath + readPath, cnt);
 					System.out.println(" - Analysers done.");
-					ArrayList<Node> ngems = generate(n, discCells);	
+					ArrayList<Node> ngems = generate(n, discCells);
 					if(visual) {
 						GraphPanel gp = new GraphPanel();
 						boolean[] graphsDone = new boolean[1];
@@ -76,6 +76,7 @@ public class Runner {
 						System.out.println(ste);
 					}
 					//throw e;
+					levelsFailed++;
 					cnt++;
 				}
 			}
@@ -104,7 +105,7 @@ public class Runner {
 		Level[] levelsArray = new Level[levels.size()];
 		levelsArray = levels.toArray(levelsArray);
 		protoGenerator.Drawer.drawLevels(configPath + writePath, levelsArray);
-		System.out.println("End. Level written at: " + configPath);
+		System.out.println("End. "+ (--cnt-levelsFailed) +" levels written at: " + configPath);
 	}
 
 	private static int getNumLevels(String path) {
@@ -158,9 +159,9 @@ public class Runner {
 		Node origin = ngems.get(1);
 		Rectangle2D landingAreaBall = ball.block.getLandingArea(100);
 		Rectangle2D landingAreaCube = cube.block.getLandingArea(100);
-
-		p1X = (int) (rnd.nextInt(((int)landingAreaCube.getWidth())) + landingAreaCube.getX()) ;
-		p1Y = (int) (-(rnd.nextInt(((int)landingAreaCube.getHeight()))) + landingAreaCube.getY());
+		
+		p1X = trim(rnd.nextInt(((int)landingAreaCube.getWidth())) + landingAreaCube.getX()) ;
+		p1Y = trim(-(rnd.nextInt(((int)landingAreaCube.getHeight()))) + landingAreaCube.getY());
 
 		Cell tCell = getCell(discCells, (int)target.block.getLandingArea(100).getCenterX(), (int)target.block.getLandingArea(100).getCenterY());
 		Cell oCell = getCell(discCells, (int)origin.block.getLandingArea(100).getCenterX(), (int)origin.block.getLandingArea(100).getCenterY());
@@ -170,8 +171,8 @@ public class Runner {
 		final int timeoutValue = Integer.MAX_VALUE/10;
 		while(!placed) {
 			int x, y;
-			x =(int) (rnd.nextInt(((int)landingAreaCube.getWidth())) + landingAreaCube.getX()) ;
-			y =(int) (-(rnd.nextInt(((int)landingAreaCube.getHeight()))) + landingAreaCube.getY());
+			x =trim(rnd.nextInt(((int)landingAreaCube.getWidth())) + landingAreaCube.getX());
+			y =trim(-(rnd.nextInt(((int)landingAreaCube.getHeight()))) + landingAreaCube.getY());
 			if(checkGrid[x][y]) {
 				if(++timeout > timeoutValue) {
 					System.out.println("[TIMEOUT] Timed out trying to place player 1. Player placement is compromised.");
@@ -245,6 +246,14 @@ public class Runner {
 			lp.print();*/
 		return level;
 
+	}
+
+	private static int trim(double d) {
+		if(d < 0) 
+			return 0;
+		if(d>1200) 
+			return 1200;
+		return (int) d;
 	}
 
 	private static void getConfig(String[] path, int[] level) {
@@ -542,10 +551,13 @@ public class Runner {
 							gemNodes.addAll(generateGems(l.target, depth-1, discCells));
 					}					
 				} else {
-					if(originCell.ballArea != getCell(discCells, (int)l.target.block.getLandingArea(10).getCenterX(), (int)l.target.block.getLandingArea(10).getCenterY()).ballArea) {
+					Cell targetCell = getCell(discCells, (int)l.target.block.getLandingArea(10).getCenterX(), (int)l.target.block.getLandingArea(10).getCenterY());
+					if(originCell.ballArea != targetCell.ballArea &&
+							originCell.cubeArea == targetCell.cubeArea) {
 						gemNodes.add(l.target);	
+					} else if(l.getChannel() > 3 && originCell.ballArea == targetCell.ballArea) {
+						gemNodes.add(l.target);
 					}
-					gemNodes.add(l.target);	
 					if(depth > 0)
 						gemNodes.addAll(generateGems(l.target, depth-1, discCells));
 				}
@@ -563,7 +575,9 @@ public class Runner {
 				}
 			}
 		}
-		return null;
+		Cell c = new Cell(-1000, -1000, -1000, -1000);
+		c.occupied = true;
+		return c;
 	}
 
 	public static void wasteTime(int t) {

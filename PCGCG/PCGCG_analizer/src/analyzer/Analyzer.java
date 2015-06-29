@@ -26,6 +26,9 @@ public class Analyzer {
 		Node floor = new Node(new Block(40, 760, 1200, 40));
 		BufferedReader input = null;
 		allNodes.add(floor);
+		allNodes.add(new Node(new Block(40,0,1200,40)));
+		allNodes.add(new Node(new Block(0,0,40,800)));
+		allNodes.add(new Node(new Block(1240,0,40,800)));
 
 		try {
 			input = new BufferedReader(new FileReader(in));
@@ -231,7 +234,9 @@ public class Analyzer {
 			}
 			toRemove.clear();
 		}
-		
+		for (int j = 1; j < 3; j++) {
+			allNodes.remove(allNodes.get(j));
+		}
 		return allNodes;
 	}
 

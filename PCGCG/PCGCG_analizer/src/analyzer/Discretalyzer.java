@@ -11,7 +11,7 @@ import java.io.IOException;
 public class Discretalyzer {
 	public static int cellSizeX = 10;
 	public static int cellSizeY = 10;
-	public static final int levelSizeX = 1200; //1200
+	public static final int levelSizeX = 1280; //1280
 	public static final int levelSizeY = 800; //800
 	public static Cell [][] cellMatrix;
 	public static final int cubeHeight = 30;
@@ -95,10 +95,10 @@ public class Discretalyzer {
 	}
 
 	private static void paintBorders() {
-		paintCells(0,760,1200,40);
-		paintCells(0,0,1200,40);
+		paintCells(40,760,1200,40);
+		paintCells(40,0,1200,40);
 		paintCells(0,0,40,800);
-		paintCells(1160,0,40,800);
+		paintCells(1240,0,40,800);
 		
 	}
 
