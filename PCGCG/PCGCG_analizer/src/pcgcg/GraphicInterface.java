@@ -5,13 +5,18 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.EventQueue;
 import java.awt.Graphics;
+import java.awt.event.ActionEvent;
+import java.util.ArrayList;
 
+import javax.swing.AbstractAction;
+import javax.swing.Action;
+import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JScrollPane;
 import javax.swing.JToolBar;
 
-import analyzer.Cell;
+
 
 public class GraphicInterface extends JComponent {
 	private static final long serialVersionUID = 1L;
@@ -25,8 +30,9 @@ public class GraphicInterface extends JComponent {
 	public static final int cellSizeX = 16;
 	public static final int cellSizeY = 16;
 	
-	private Overlay currentOverlay = Overlay.None;	
+	public Overlay currentOverlay = Overlay.None;
 	private Cell[][] cells;
+	private ArrayList<Blob> blobs;
 	
 	public static int WIDE=levelSizeX, HIGH=levelSizeY;
 	private static GraphicInterface instance = null;
@@ -40,11 +46,37 @@ public class GraphicInterface extends JComponent {
 	
 	private class ButtonsBar extends JToolBar {
 		private static final long serialVersionUID = 1L;
+		private Action ballOverlay = new OverlayComboAction("Overlay");
+		private JComboBox<Overlay> overlayCombo = new JComboBox<Overlay>();
 
 		ButtonsBar() {
-			
+			this.add(overlayCombo);
+			overlayCombo.addActionListener(ballOverlay);
+			for (Overlay k : Overlay.values()) {
+				overlayCombo.addItem(k);
+            }
 		}
 		
+	}
+	private class OverlayComboAction extends AbstractAction {
+		private static final long serialVersionUID = 298648541828787207L;
+		
+		Overlay type;
+		
+		public OverlayComboAction(String name) {
+			super(name);
+		}
+
+		@Override
+		public void actionPerformed(ActionEvent e) {
+			@SuppressWarnings("unchecked")
+			JComboBox<Overlay> combo = (JComboBox<Overlay>) e.getSource();
+            type = (Overlay) combo.getSelectedItem();
+            if(instance != null) {
+                instance.currentOverlay = type;
+            }
+            repaint();
+		}
 	}
 	
 	private GraphicInterface() {
