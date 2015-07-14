@@ -34,6 +34,7 @@ public class GraphicInterface extends JComponent {
 	private static final Color cellBackground = new Color(230,230,230);
 	private static final Color cellOccBackground = new Color(0x3e3e3e);
 	private static final Color cellCubeBackground = new Color(0x9BCA3E);
+	private static final Color cellCoopBackground = new Color(0x6d3eca);
 	private static final Color cellNotBallBackground = new Color(0xED5314);
 	private static final Color cellBorder = new Color(170,170,170);
 	public static final int levelSizeX = 1280;
@@ -62,6 +63,8 @@ public class GraphicInterface extends JComponent {
 		private Action ballOverlay = new OverlayComboAction("Overlay");
 		private JComboBox<Overlay> overlayCombo = new JComboBox<Overlay>();
 		private JButton loadButton = new JButton(new LoadAction());
+		private JButton saveButton = new JButton(new SaveAction());
+		private JButton generateButton = new JButton(new GenerateAction());
 
 		ButtonsBar() {
 			this.add(overlayCombo);
@@ -71,14 +74,14 @@ public class GraphicInterface extends JComponent {
             }
 			loadButton.setText("Load");
 			this.add(loadButton);
+			saveButton.setText("Save");
+			this.add(saveButton);
+			generateButton.setText("Regenerate");
+			this.add(generateButton);
 		}
 
 		private class LoadAction extends AbstractAction {
 			private static final long serialVersionUID = 1L;
-
-			public LoadAction() {
-
-			}
 
 			@Override
 			public void actionPerformed(ActionEvent e) {
@@ -88,6 +91,27 @@ public class GraphicInterface extends JComponent {
 				if(returnValue == JFileChooser.APPROVE_OPTION) {
 					GraphicInterface.instance().loadFile(fc.getSelectedFile());
 				}
+			}
+		}
+		private class SaveAction extends AbstractAction {
+			private static final long serialVersionUID = 1L;
+			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				File f = new File("");
+				JFileChooser fc = new JFileChooser(f.getAbsolutePath());
+				int returnValue = fc.showSaveDialog(GraphicInterface.instance());
+				if(returnValue == JFileChooser.APPROVE_OPTION) {
+					GraphicInterface.instance().saveFile(fc.getSelectedFile());
+				}
+			}
+		}
+		private class GenerateAction extends AbstractAction {
+			private static final long serialVersionUID = 1L;
+
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+				instance().generate();
 			}
 		}
 	}
@@ -116,6 +140,89 @@ public class GraphicInterface extends JComponent {
 		
 	}
 	
+	public void generate() {
+		for (int i = 0; i < cells.length-1; i++) {
+			for (int j = 0; j < cells[0].length-1; j++) {
+				evaluateCell(cells[i][j], i, j);
+			}
+		}
+		reachabilityCube();
+	}
+
+	private void reachabilityCube() {
+		Cell startCell = getCell(playerCube.x, playerCube.y);
+		// TODO Auto-generated method stub		
+	}
+
+	private Cell getCell(int x, int y) {
+		for (int i = 0; i < cells.length -1; i++) {
+			for (int j = 0; j < cells[0].length-1; j++) {
+				Rectangle r = new Rectangle((int) cells[i][j].topleft.getX(), (int) cells[i][j].topleft.getY(), (int) cells[i][j].sizeX, (int) cells[i][j].sizeY);
+				if(r.contains(x, y)) {
+					return cells[i][j];
+				}
+			}
+		}
+		return null;
+	}
+
+	private void evaluateCell(Cell cell, int x, int y) {
+		if(x>1&&x<levelSizeX-2&&y>1&&y<levelSizeY-2) { //if not in corner
+			if(!cell.occupied) {
+				if(eightConnected(x,y))
+					cell.fitsCube = true;
+				if(eightConnected(x-1,y-1)&&eightConnected(x-1,y+1)&&eightConnected(x+1,y-1)&&eightConnected(x+1,y+1)) {
+					cell.fitsBall=true;
+				}
+			}
+		}
+		/* Paint above
+		if(cell.occupied) {
+			Cell targetCell;
+			int ty = 1;
+			if(y-ty > 0	) {
+				targetCell = cells[x][y-ty];
+				while(!targetCell.occupied) {
+					if(ty>29) {
+						break;
+					}
+					if(x < 1 || x > levelSizeX-1)
+						break;
+					if(cells[x-1][y-ty].occupied || cells[x+1][y-ty].occupied) {
+						//do nothing
+					} else {
+						if(ty<6)
+							targetCell.cube = true;
+						targetCell.ball = true;
+					}
+					ty++;
+					if(y-ty > 0	) {
+						targetCell = cells[x][y-ty];
+					} else
+						break;
+				}
+			}
+		}*/
+	}
+
+	private boolean eightConnected(int x, int y) {
+		if(		cells[x-1][y-1].occupied ||
+				cells[x-1][y].occupied ||
+				cells[x-1][y+1].occupied ||
+				cells[x][y-1].occupied ||
+				cells[x][y+1].occupied ||
+				cells[x+1][y-1].occupied ||
+				cells[x+1][y].occupied ||
+				cells[x+1][y+1].occupied)
+			return false;
+		return true;
+	}
+
+	public void saveFile(File selectedFile) {
+		// TODO Auto-generated method stub
+		
+	}
+
 	public void loadFile(File selectedFile) {
 		Cell[][] result=freshCells();
 		int level = selectLevel(selectedFile);
@@ -341,12 +448,14 @@ public class GraphicInterface extends JComponent {
 					Color toUse = cellBackground;
 					if(currentOverlay == Overlay.Distance)
 						toUse = distColor;
-					if(currentOverlay == Overlay.Ball && cells[i][j].ball) {
+					if(currentOverlay == Overlay.FitsBall && cells[i][j].fitsBall) {
 						toUse = cellNotBallBackground;
 					}
-					
-					if(currentOverlay == Overlay.Cube && cells[i][j].cube) {
+					if(currentOverlay == Overlay.FitsCube && cells[i][j].fitsCube) {
 						toUse = cellCubeBackground;
+					}
+					if(currentOverlay == Overlay.Coop && cells[i][j].coop) {
+						toUse = cellCoopBackground;
 					}
 					
 					g.setColor(toUse);
@@ -360,7 +469,7 @@ public class GraphicInterface extends JComponent {
 	}
 	
 	public enum Overlay {
-		None, Ball, Cube, Distance
+		None, FitsBall, FitsCube, Distance, Coop
 	}
 
 	public Cell[][] getCells() {
