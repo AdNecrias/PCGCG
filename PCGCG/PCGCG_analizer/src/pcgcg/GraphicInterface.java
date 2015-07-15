@@ -26,7 +26,6 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JToolBar;
-import javax.swing.text.Position;
 
 
 
@@ -42,13 +41,13 @@ public class GraphicInterface extends JComponent {
 	public static final int levelSizeY = 800;
 	public static final int cellSizeX = 16;
 	public static final int cellSizeY = 16;
-
+	
 	public Overlay currentOverlay = Overlay.None;
 	private Cell[][] cells;
 	private PlayerPosition playerBall = new PlayerPosition();
 	private PlayerPosition playerCube = new PlayerPosition();
 	private ArrayList<Blob> blobs;
-
+	
 	public static int WIDE=levelSizeX, HIGH=levelSizeY;
 	private static GraphicInterface instance = null;
 	public static GraphicInterface instance() {
@@ -56,9 +55,9 @@ public class GraphicInterface extends JComponent {
 			instance = new GraphicInterface();
 		return instance;
 	}
-
+	
 	private ButtonsBar control = new ButtonsBar();
-
+	
 	private class ButtonsBar extends JToolBar {
 		private static final long serialVersionUID = 1L;
 		private Action ballOverlay = new OverlayComboAction("Overlay");
@@ -72,7 +71,7 @@ public class GraphicInterface extends JComponent {
 			overlayCombo.addActionListener(ballOverlay);
 			for (Overlay k : Overlay.values()) {
 				overlayCombo.addItem(k);
-			}
+            }
 			loadButton.setText("Load");
 			this.add(loadButton);
 			saveButton.setText("Save");
@@ -96,7 +95,7 @@ public class GraphicInterface extends JComponent {
 		}
 		private class SaveAction extends AbstractAction {
 			private static final long serialVersionUID = 1L;
-
+			
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				File f = new File("");
@@ -113,15 +112,14 @@ public class GraphicInterface extends JComponent {
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
 				instance().generate();
-				repaint();
 			}
 		}
 	}
 	private class OverlayComboAction extends AbstractAction {
 		private static final long serialVersionUID = 298648541828787207L;
-
+		
 		Overlay type;
-
+		
 		public OverlayComboAction(String name) {
 			super(name);
 		}
@@ -130,18 +128,18 @@ public class GraphicInterface extends JComponent {
 		public void actionPerformed(ActionEvent e) {
 			@SuppressWarnings("unchecked")
 			JComboBox<Overlay> combo = (JComboBox<Overlay>) e.getSource();
-			type = (Overlay) combo.getSelectedItem();
-			if(instance != null) {
-				instance.currentOverlay = type;
-			}
-			repaint();
+            type = (Overlay) combo.getSelectedItem();
+            if(instance != null) {
+                instance.currentOverlay = type;
+            }
+            repaint();
 		}
 	}
-
+	
 	private GraphicInterface() {
-
+		
 	}
-
+	
 	public void generate() {
 		for (int i = 0; i < cells.length-1; i++) {
 			for (int j = 0; j < cells[0].length-1; j++) {
@@ -152,140 +150,19 @@ public class GraphicInterface extends JComponent {
 	}
 
 	private void reachabilityCube() {
-		int[] startPosition = {-2,-2};
-		Cell startCell = getCell(playerCube.x, playerCube.y, startPosition);
-		if(startPosition[0] < 0 || startPosition[1] < 0) { // Error
-			System.out.println("Error - reachabilityCube");
-		}
-		checkCubeReach(startPosition[0], startPosition[1], 0);
-		startCell = getCell(playerBall.x, playerBall.y, startPosition);
-		if(startPosition[0] < 0 || startPosition[1] < 0) { // Error
-			System.out.println("Error - reachabilityBall");
-		}
-		checkBallReach(startPosition[0], startPosition[1], 0,0);
+		Cell startCell = getCell(playerCube.x, playerCube.y);
+		// TODO Auto-generated method stub		
 	}
 
-	private void checkBallReach(int x, int y, int speed, int jump) {
-		if(cells[x][y].reachBall) {
-			if(speed>0) {
-				if(cells[x][y].traversedBallLeft) return;
-				cells[x][y].traversedBallLeft = true;
-			} else if(speed < 0) {
-				if(cells[x][y].traversedBallRight) return;
-				cells[x][y].traversedBallRight = true;	
-			} else {
-				return;
-			}
-		}
-		
-		if(cells[x][y].fitsBall) {
-			cells[x][y].reachBall = true;
-			boolean stillJumping = false;
-			if(jump>0) { // is jumping
-				stillJumping = true;
-				if(cells[x][y-1].fitsBall) {
-					checkBallReach(x, y-1, speed,jump-1);
-				} else stillJumping = false;
-				if(speed < 0 && cells[x-1][y-1].fitsBall) {
-					checkBallReach(x-1, y-1, speed,jump-1);
-				} else stillJumping = false;
-				if(speed > 0 && cells[x+1][y-1].fitsBall) {
-					checkBallReach(x+1, y-1, speed,jump-1);
-				} else stillJumping = false;
-			} 
-			if(!stillJumping) {
-				if(!cells[x][y+1].fitsBall) {
-					if(!cells[x-1][y].fitsBall) {
-						checkBallReach(x-1, y-1, -1,0);
-						checkBallReach(x, y-1, 0,0);
-					} else {
-						checkBallReach(x-1, y, -1,0);
-						checkBallReach(x-2, y, -1,0);
-						checkBallReach(x-3, y, -1,0);
-					}
-					if(!cells[x+1][y].fitsBall) {
-						checkBallReach(x+1, y-1, 1,0);
-						checkBallReach(x, y-1, 0,0);
-					} else {
-						checkBallReach(x+1, y, 1,0);
-						checkBallReach(x+2, y, 1,0);
-						checkBallReach(x+3, y, 1,0);
-					}
-					//jump
-					checkBallReach(x-1, y-1,-1,24);
-					checkBallReach(x  , y-1, 0,24);
-					checkBallReach(x+1, y-1, 1,24);
-				} else { //fall
-					if(speed<0){
-						checkBallReach(x-1, y+1, speed,0);
-					}
-					checkBallReach(x, y+1, speed,0);
-					if(speed>0) {
-						checkBallReach(x+1, y+1, speed,0);
-					}
-				}
-			}
-		}
-	}
-
-	private void checkCubeReach(int x, int y, int speed) {
-		if(cells[x][y].reachCube) {
-			if(speed>0) {
-				if(cells[x][y].traversedCubeLeft) return;
-				cells[x][y].traversedCubeLeft = true;				
-			} else if(speed < 0) {
-				if(cells[x][y].traversedCubeRight) return;
-				cells[x][y].traversedCubeRight = true;	
-			} else {
-				return;
-			}
-		}
-		if(cells[x][y].fitsCube) {
-			cells[x][y].reachCube = true;
-			if(!cells[x][y+1].fitsCube) {
-				if(!cells[x-1][y].fitsCube) {
-					checkCubeReach(x-1, y-1, -1);
-					checkCubeReach(x, y-1, 0);
-				} else {
-					checkCubeReach(x, y-1, -1);
-					checkCubeReach(x-1, y, -1);
-					checkCubeReach(x-2, y, -1);
-					checkCubeReach(x-3, y, -1);
-				}
-				if(!cells[x+1][y].fitsCube) {
-					checkCubeReach(x+1, y-1, 1);
-					checkCubeReach(x, y-1, 0);
-				} else {
-					checkCubeReach(x, y-1, 1);
-					checkCubeReach(x+1, y, 1);
-					checkCubeReach(x+2, y, 1);
-					checkCubeReach(x+3, y, 1);
-				}
-			} else { //fall
-				if(speed<0){
-					checkCubeReach(x-1, y+1, speed);
-				}
-				checkCubeReach(x, y+1, speed);
-				if(speed>0) {
-					checkCubeReach(x+1, y+1, speed);
-				}
-			}
-		}
-	}
-
-	private Cell getCell(int x, int y, int[] position) {
+	private Cell getCell(int x, int y) {
 		for (int i = 0; i < cells.length -1; i++) {
 			for (int j = 0; j < cells[0].length-1; j++) {
 				Rectangle r = new Rectangle((int) cells[i][j].topleft.getX(), (int) cells[i][j].topleft.getY(), (int) cells[i][j].sizeX, (int) cells[i][j].sizeY);
 				if(r.contains(x, y)) {
-					position[0] = i;
-					position[1] = j;
 					return cells[i][j];
 				}
 			}
 		}
-		position[0] = -1;
-		position[1] = -1;
 		return null;
 	}
 
@@ -343,7 +220,7 @@ public class GraphicInterface extends JComponent {
 
 	public void saveFile(File selectedFile) {
 		// TODO Auto-generated method stub
-
+		
 	}
 
 	public void loadFile(File selectedFile) {
@@ -351,7 +228,7 @@ public class GraphicInterface extends JComponent {
 		int level = selectLevel(selectedFile);
 		instance().playerBall.active = false;
 		instance().playerCube.active = false;
-
+		
 		BufferedReader input = null;
 		boolean inLevel = false;
 		boolean inBlackObstacles = false;
@@ -437,14 +314,14 @@ public class GraphicInterface extends JComponent {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-
+		
 		GraphicInterface.instance().setCells(result);
 		repaint();
 	}
-
+	
 	private void paintCells(Cell[][] cellMatrix, int x, int y, int width, int height) {
 		Rectangle area = new Rectangle(x, y, width, height);
-
+		
 		for(int i = 0; i < cellMatrix.length-1; i++) {
 			for(int j =0; j < cellMatrix[0].length-1; j++) {
 				if(area.intersects((int)cellMatrix[i][j].topleft.getX(), (int) cellMatrix[i][j].topleft.getY(),
@@ -459,7 +336,7 @@ public class GraphicInterface extends JComponent {
 		paintCells(cellMatrix,40,0,1200,40);
 		paintCells(cellMatrix,0,0,40,800);
 		paintCells(cellMatrix,1240,0,40,800);
-
+		
 	}
 
 	private int selectLevel(File selectedFile) {
@@ -511,29 +388,29 @@ public class GraphicInterface extends JComponent {
 	public static void run() {
 		EventQueue.invokeLater(new Runnable() {
 
-			public void run() {
-				JFrame f = new JFrame("PCGCG Viewer");
-				f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-				if(instance == null)
-					instance = new GraphicInterface();
-				instance.initialize();
-				f.add(instance.control, BorderLayout.NORTH);
-				f.add(new JScrollPane(instance), BorderLayout.CENTER);
-				f.pack();
-				f.setLocationByPlatform(true);
-				f.setVisible(true);
-			}
-		});
+            public void run() {
+                JFrame f = new JFrame("PCGCG Viewer");
+                f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+                if(instance == null)
+                	instance = new GraphicInterface();
+                instance.initialize();
+                f.add(instance.control, BorderLayout.NORTH);
+                f.add(new JScrollPane(instance), BorderLayout.CENTER);
+                f.pack();
+                f.setLocationByPlatform(true);
+                f.setVisible(true);
+            }
+        });
 	}
-
+	
 	@Override
 	public void paintComponent(Graphics g) {
 		g.setColor(new Color(51,51,51));
-		g.fillRect(0, 0, getWidth(), getHeight());
-		drawCells(g);
-		drawPlayers(g);
+        g.fillRect(0, 0, getWidth(), getHeight());
+        drawCells(g);
+        drawPlayers(g);
 	}
-
+	
 	private void drawPlayers(Graphics g) {
 		int border = 4;
 		if(playerBall.active) {
@@ -551,10 +428,10 @@ public class GraphicInterface extends JComponent {
 	}
 
 	@Override
-	public Dimension getPreferredSize() {
-		return new Dimension(WIDE, HIGH);
-	}
-
+    public Dimension getPreferredSize() {
+        return new Dimension(WIDE, HIGH);
+    }
+	
 	private void initialize() {
 		instance.initializeCells();
 	}
@@ -571,20 +448,16 @@ public class GraphicInterface extends JComponent {
 					Color toUse = cellBackground;
 					if(currentOverlay == Overlay.Distance)
 						toUse = distColor;
-					if(currentOverlay == Overlay.Ball && (cells[i][j].fitsBall||cells[i][j].reachBall)) {
+					if(currentOverlay == Overlay.FitsBall && cells[i][j].fitsBall) {
 						toUse = cellNotBallBackground;
-						if(cells[i][j].reachBall)
-							toUse = toUse.darker();
 					}
-					if(currentOverlay == Overlay.Cube && (cells[i][j].fitsCube||cells[i][j].reachCube)) {
+					if(currentOverlay == Overlay.FitsCube && cells[i][j].fitsCube) {
 						toUse = cellCubeBackground;
-						if(cells[i][j].reachCube)
-							toUse = toUse.darker();
 					}
 					if(currentOverlay == Overlay.Coop && cells[i][j].coop) {
 						toUse = cellCoopBackground;
 					}
-
+					
 					g.setColor(toUse);
 				}
 				g.fillRect((int)cells[i][j].topleft.getX(), (int)cells[i][j].topleft.getY(), (int)cells[i][j].sizeX, (int)cells[i][j].sizeY);
@@ -592,11 +465,11 @@ public class GraphicInterface extends JComponent {
 				g.drawRect((int)cells[i][j].topleft.getX(), (int)cells[i][j].topleft.getY(), (int)cells[i][j].sizeX, (int)cells[i][j].sizeY);
 			}
 		}
-
+		
 	}
-
+	
 	public enum Overlay {
-		None, Ball, Cube, Distance, Coop
+		None, FitsBall, FitsCube, Distance, Coop
 	}
 
 	public Cell[][] getCells() {
@@ -606,13 +479,13 @@ public class GraphicInterface extends JComponent {
 	public void setCells(Cell[][] cells) {
 		this.cells = cells;
 	}
-
+	
 	public Cell setCell(int x, int y, Cell cell) {
 		Cell previous = this.cells[x][y];
 		this.cells[x][y] = cell;
 		return previous;
 	}
-
+	
 	public void initializeCells() {
 		instance.cells = new Cell[levelSizeX/cellSizeX+1][levelSizeY/cellSizeY+1];
 		for(int x = 0, i = 0; x < levelSizeX; x += cellSizeX) {
@@ -623,7 +496,7 @@ public class GraphicInterface extends JComponent {
 			i++;
 		}
 	}
-
+	
 	public Cell[][] freshCells() {
 		Cell[][] fresh= new Cell[levelSizeX/cellSizeX+1][levelSizeY/cellSizeY+1];
 		for(int x = 0, i = 0; x < levelSizeX; x += cellSizeX) {
@@ -635,7 +508,7 @@ public class GraphicInterface extends JComponent {
 		}
 		return fresh;
 	}
-
+	
 	public static void run(Cell[][] discCells) {
 		instance = new GraphicInterface();
 		instance.setCells(discCells);
@@ -643,7 +516,7 @@ public class GraphicInterface extends JComponent {
 		HIGH = (int) discCells[0][0].sizeY * (discCells[0].length-1);
 		run();
 	}
-
+	
 	private class PlayerPosition {
 		public int x = 0;
 		public int y = 0;
