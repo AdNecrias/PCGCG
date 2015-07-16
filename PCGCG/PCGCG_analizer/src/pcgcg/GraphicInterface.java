@@ -14,7 +14,6 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.SortedSet;
 import java.util.TreeSet;
 
 import javax.swing.AbstractAction;
@@ -28,7 +27,6 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JToolBar;
-import javax.swing.text.Position;
 
 
 
@@ -156,7 +154,7 @@ public class GraphicInterface extends JComponent {
 
 	private void reachabilityCube() {
 		int[] startPosition = {-2,-2};
-		Cell startCell = getCell(playerCube.x+50, playerCube.y+50, startPosition);
+		getCell(playerCube.x+50, playerCube.y+50, startPosition);
 		if(startPosition[0] < 0 || startPosition[1] < 0) { // Error
 			System.out.println("Error - reachabilityCube");
 		}
@@ -300,33 +298,6 @@ public class GraphicInterface extends JComponent {
 				}
 			}
 		}
-		/* Paint above
-		if(cell.occupied) {
-			Cell targetCell;
-			int ty = 1;
-			if(y-ty > 0	) {
-				targetCell = cells[x][y-ty];
-				while(!targetCell.occupied) {
-					if(ty>29) {
-						break;
-					}
-					if(x < 1 || x > levelSizeX-1)
-						break;
-					if(cells[x-1][y-ty].occupied || cells[x+1][y-ty].occupied) {
-						//do nothing
-					} else {
-						if(ty<6)
-							targetCell.cube = true;
-						targetCell.ball = true;
-					}
-					ty++;
-					if(y-ty > 0	) {
-						targetCell = cells[x][y-ty];
-					} else
-						break;
-				}
-			}
-		}*/
 	}
 
 	private void clearInfo(Cell cell) {
