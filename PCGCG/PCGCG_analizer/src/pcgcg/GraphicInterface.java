@@ -14,6 +14,8 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 import javax.swing.AbstractAction;
 import javax.swing.Action;
@@ -149,79 +151,77 @@ public class GraphicInterface extends JComponent {
 			}
 		}
 		reachabilityCube();
+		reachabilityBall();
 	}
 
 	private void reachabilityCube() {
 		int[] startPosition = {-2,-2};
-		Cell startCell = getCell(playerCube.x, playerCube.y, startPosition);
+		Cell startCell = getCell(playerCube.x+50, playerCube.y+50, startPosition);
 		if(startPosition[0] < 0 || startPosition[1] < 0) { // Error
 			System.out.println("Error - reachabilityCube");
 		}
 		checkCubeReach(startPosition[0], startPosition[1], 0);
-		startCell = getCell(playerBall.x, playerBall.y, startPosition);
+	}
+	private void reachabilityBall() {
+		int[] startPosition = {-2,-2};
+		Cell startCell = getCell(playerBall.x+50, playerBall.y+50, startPosition);
 		if(startPosition[0] < 0 || startPosition[1] < 0) { // Error
 			System.out.println("Error - reachabilityBall");
 		}
-		checkBallReach(startPosition[0], startPosition[1], 0,0);
-	}
-
-	private void checkBallReach(int x, int y, int speed, int jump) {
-		if(cells[x][y].reachBall) {
-			if(speed>0) {
-				if(cells[x][y].traversedBallLeft) return;
-				cells[x][y].traversedBallLeft = true;
-			} else if(speed < 0) {
-				if(cells[x][y].traversedBallRight) return;
-				cells[x][y].traversedBallRight = true;	
-			} else {
-				return;
+		TreeSet<Cell> cellsToAnalyse = new TreeSet<Cell>();
+		cellsToAnalyse.add(startCell);
+		if(!startCell.fitsBall) {
+			for(int i=0; i < 2;i++) {
+				cellsToAnalyse.add(getCell(playerBall.x+25, playerBall.y+50*i+25, startPosition));
+				cellsToAnalyse.add(getCell(playerBall.x+75, playerBall.y+50*i+25, startPosition));
 			}
 		}
+		int cnt = 0;
+		while(!cellsToAnalyse.isEmpty()) {
+			Cell current = cellsToAnalyse.first();
+			analyseBallReachability(current, cellsToAnalyse);
+			cellsToAnalyse.remove(current);
+			cnt++;
+			if(cnt > 100000) {
+				System.out.print("[Timeout] ");
+				break;
+			}
+		}
+		System.out.println(cnt + " reachabilityBall done.");
+	}
+
+	private void analyseBallReachability(Cell current,
+			TreeSet<Cell> cellsToAnalyse) {
+		int x = current.x, y = current.y;
 		
-		if(cells[x][y].fitsBall) {
+		if(current.fitsBall) {
 			cells[x][y].reachBall = true;
-			boolean stillJumping = false;
-			if(jump>0) { // is jumping
-				stillJumping = true;
-				if(cells[x][y-1].fitsBall) {
-					checkBallReach(x, y-1, speed,jump-1);
-				} else stillJumping = false;
-				if(speed < 0 && cells[x-1][y-1].fitsBall) {
-					checkBallReach(x-1, y-1, speed,jump-1);
-				} else stillJumping = false;
-				if(speed > 0 && cells[x+1][y-1].fitsBall) {
-					checkBallReach(x+1, y-1, speed,jump-1);
-				} else stillJumping = false;
-			} 
-			if(!stillJumping) {
-				if(!cells[x][y+1].fitsBall) {
-					if(!cells[x-1][y].fitsBall) {
-						checkBallReach(x-1, y-1, -1,0);
-						checkBallReach(x, y-1, 0,0);
-					} else {
-						checkBallReach(x-1, y, -1,0);
-						checkBallReach(x-2, y, -1,0);
-						checkBallReach(x-3, y, -1,0);
+			if(!cells[x][y+1].fitsBall) { // has ground
+				current.maxJumpStrenght = 24;
+				for (int i = -1; i < 2; i++) {
+					if(cells[x+i][y-1].maxJumpStrenght < 23) {
+						cells[x+i][y-1].maxJumpStrenght = 23;
+						cellsToAnalyse.add(cells[x+i][y-1]);
 					}
-					if(!cells[x+1][y].fitsBall) {
-						checkBallReach(x+1, y-1, 1,0);
-						checkBallReach(x, y-1, 0,0);
-					} else {
-						checkBallReach(x+1, y, 1,0);
-						checkBallReach(x+2, y, 1,0);
-						checkBallReach(x+3, y, 1,0);
+				}
+				if(cells[x-1][y].maxJumpStrenght != 24) {
+					cellsToAnalyse.add(cells[x-1][y]);
+				}
+				if(cells[x+1][y].maxJumpStrenght != 24) {
+					cellsToAnalyse.add(cells[x+1][y]);
+				}
+			} else {
+				if(current.maxJumpStrenght > 0 && current.maxJumpStrenght < 24) { // mid air?
+					for (int i = -1; i < 2; i++) {
+						if(cells[x+i][y-1].maxJumpStrenght < current.maxJumpStrenght-1) {
+							cells[x+i][y-1].maxJumpStrenght = current.maxJumpStrenght-1;
+							cellsToAnalyse.add(cells[x+i][y-1]);
+						}
 					}
-					//jump
-					checkBallReach(x-1, y-1,-1,24);
-					checkBallReach(x  , y-1, 0,24);
-					checkBallReach(x+1, y-1, 1,24);
-				} else { //fall
-					if(speed<0){
-						checkBallReach(x-1, y+1, speed,0);
-					}
-					checkBallReach(x, y+1, speed,0);
-					if(speed>0) {
-						checkBallReach(x+1, y+1, speed,0);
+				}
+				for (int i = -1; i < 2; i++) {
+					if(!cells[x+i][y+1].reachBall) {
+						cellsToAnalyse.add(cells[x+i][y+1]);
 					}
 				}
 			}
@@ -290,6 +290,7 @@ public class GraphicInterface extends JComponent {
 	}
 
 	private void evaluateCell(Cell cell, int x, int y) {
+		clearInfo(cell);
 		if(x>1&&x<levelSizeX-2&&y>1&&y<levelSizeY-2) { //if not in corner
 			if(!cell.occupied) {
 				if(eightConnected(x,y))
@@ -326,6 +327,22 @@ public class GraphicInterface extends JComponent {
 				}
 			}
 		}*/
+	}
+
+	private void clearInfo(Cell cell) {
+		cell.ballArea=0;
+		cell.ballVisits=0;
+		cell.closestOccupied = Integer.MAX_VALUE;
+		cell.closestOccupiedX = Integer.MAX_VALUE;
+		cell.closestOccupiedY = Integer.MAX_VALUE;
+		cell.coop = false;
+		cell.cubeArea = 0;
+		cell.fitsBall = false;
+		cell.fitsCube = false;
+		cell.reachBall=false;
+		cell.reachCoop = false;
+		cell.reachCoop=false;
+		cell.maxJumpStrenght = 0;
 	}
 
 	private boolean eightConnected(int x, int y) {
@@ -566,7 +583,8 @@ public class GraphicInterface extends JComponent {
 				if(cells[i][j].occupied())
 					g.setColor(cellOccBackground);
 				else {
-					int dist = Math.max(0,Math.min(cells[i][j].closestOccupied*1, 255));
+					//int dist = Math.max(0,Math.min(cells[i][j].closestOccupied*1, 255)); //old
+					int dist = 255 - (cells[i][j].maxJumpStrenght*10);
 					Color distColor = new Color(255, dist, dist);
 					Color toUse = cellBackground;
 					if(currentOverlay == Overlay.Distance)
@@ -618,6 +636,8 @@ public class GraphicInterface extends JComponent {
 		for(int x = 0, i = 0; x < levelSizeX; x += cellSizeX) {
 			for(int y = 0, j =0; y < levelSizeY; y += cellSizeY) {
 				instance.cells[i][j] = new Cell(x, y, x+cellSizeX, y+cellSizeY);
+				instance.cells[i][j].x = i;
+				instance.cells[i][j].y = j;
 				j++;
 			}
 			i++;
@@ -629,6 +649,8 @@ public class GraphicInterface extends JComponent {
 		for(int x = 0, i = 0; x < levelSizeX; x += cellSizeX) {
 			for(int y = 0, j =0; y < levelSizeY; y += cellSizeY) {
 				fresh[i][j] = new Cell(x, y, x+cellSizeX, y+cellSizeY);
+				fresh[i][j].x = i;
+				fresh[i][j].y = j;
 				j++;
 			}
 			i++;

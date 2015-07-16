@@ -2,7 +2,7 @@ package pcgcg;
 
 import java.awt.geom.Point2D;
 
-public class Cell {
+public class Cell implements Comparable<Cell>{
 	public int ballArea = 0;
 	public int cubeArea = 0;
 	public boolean fitsBall = false;
@@ -19,14 +19,17 @@ public class Cell {
 	public boolean coop = false;
 	public boolean traversedCubeLeft, traversedCubeRight;
 	public int ballVisits = 0;
-	public boolean traversedBallLeft;
-	public boolean traversedBallRight;
+	public int maxJumpStrenght=0;
+	public int x, y;
+	public long id;
+	public static long idCounter=0;
 	
 	public Cell( int leftx, int topy, int rightx, int boty ) {
 		topleft = new Point2D.Double(leftx,topy);
 		botright = new Point2D.Double(rightx, boty);
 		sizeX = Math.abs(leftx - rightx);
 		sizeY = Math.abs(topy - boty);
+		id = ++idCounter;
 	}
 
 	@Override
@@ -37,6 +40,15 @@ public class Cell {
 
 	public boolean occupied() {
 		return occupied;
+	}
+
+	@Override
+	public int compareTo(Cell o) {
+		if(this.id < o.id) 
+			return -1;
+		if(this.id > o.id)
+			return 1;
+		return 0;
 	}
 
 }
