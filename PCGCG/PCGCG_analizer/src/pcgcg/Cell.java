@@ -1,6 +1,10 @@
 package pcgcg;
 
+import java.awt.Color;
+import java.awt.Graphics;
 import java.awt.geom.Point2D;
+
+import pcgcg.GraphicInterface.Overlay;
 
 public class Cell implements Comparable<Cell>{
 	public int ballArea = 0;
@@ -50,5 +54,42 @@ public class Cell implements Comparable<Cell>{
 			return 1;
 		return 0;
 	}
+
+	public void draw(Graphics g) {
+		// TODO Auto-generated method stub
+		
+		g.setColor(GraphicInterface.cellBackground); // default
+		if(occupied())
+			g.setColor(GraphicInterface.cellOccBackground);
+		else {
+			//int dist = Math.max(0,Math.min(cells[i][j].closestOccupied*1, 255)); //old
+			int dist = 255 - (maxJumpStrenght*10);
+			Color distColor = new Color(255, dist, dist);
+			Color toUse = GraphicInterface.cellBackground;
+			if(GraphicInterface.instance().currentOverlay == Overlay.Distance)
+				toUse = distColor;
+			if(GraphicInterface.instance().currentOverlay == Overlay.Ball && (fitsBall||reachBall)) {
+				toUse = GraphicInterface.cellNotBallBackground;
+				if(reachBall)
+					toUse = toUse.darker();
+			}
+			if(GraphicInterface.instance().currentOverlay == Overlay.Cube && (fitsCube||reachCube)) {
+				toUse = GraphicInterface.cellCubeBackground;
+				if(reachCube)
+					toUse = toUse.darker();
+			}
+			if(GraphicInterface.instance().currentOverlay == Overlay.Coop && coop) {
+				toUse = GraphicInterface.cellCoopBackground;
+			}
+
+			g.setColor(toUse);
+		}
+		g.fillRect((int)topleft.getX(), (int)topleft.getY(), (int)sizeX, (int)sizeY);
+		g.setColor(GraphicInterface.cellBorder);
+		g.drawRect((int)topleft.getX(), (int)topleft.getY(), (int)sizeX, (int)sizeY);
+	
+	}
+	
+	
 
 }

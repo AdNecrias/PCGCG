@@ -6,8 +6,12 @@ import java.awt.Dimension;
 import java.awt.EventQueue;
 import java.awt.Graphics;
 import java.awt.GridLayout;
+import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseMotionAdapter;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -28,16 +32,14 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JToolBar;
 
-
-
 public class GraphicInterface extends JComponent {
 	private static final long serialVersionUID = 1L;
-	private static final Color cellBackground = new Color(230,230,230);
-	private static final Color cellOccBackground = new Color(0x3e3e3e);
-	private static final Color cellCubeBackground = new Color(0x9BCA3E);
-	private static final Color cellCoopBackground = new Color(0x6d3eca);
-	private static final Color cellNotBallBackground = new Color(0xED5314);
-	private static final Color cellBorder = new Color(170,170,170);
+	public static final Color cellBackground = new Color(230,230,230);
+	public static final Color cellOccBackground = new Color(0x3e3e3e);
+	public static final Color cellCubeBackground = new Color(0x9BCA3E);
+	public static final Color cellCoopBackground = new Color(0x6d3eca);
+	public static final Color cellNotBallBackground = new Color(0xED5314);
+	public static final Color cellBorder = new Color(170,170,170);
 	public static final int levelSizeX = 1280;
 	public static final int levelSizeY = 800;
 	public static final int cellSizeX = 16;
@@ -48,6 +50,9 @@ public class GraphicInterface extends JComponent {
 	private PlayerPosition playerBall = new PlayerPosition();
 	private PlayerPosition playerCube = new PlayerPosition();
 	private ArrayList<Blob> blobs;
+	
+	private Rectangle mouseRect = new Rectangle();
+	private Point mousePt = new Point();
 
 	public static int WIDE=levelSizeX, HIGH=levelSizeY;
 	private static GraphicInterface instance = null;
@@ -58,6 +63,37 @@ public class GraphicInterface extends JComponent {
 	}
 
 	private ButtonsBar control = new ButtonsBar();
+	private ToolBar tool = new ToolBar();
+	private Tool toolSelected = Tool.None;
+	
+	public enum Tool {
+		None, Cube, Ball, Paint;
+	}
+	
+	private class ToolBar extends JToolBar {
+		private static final long serialVersionUID = 1L;
+		
+		ToolBar() {
+			super(JToolBar.VERTICAL);
+			for (Tool t : Tool.values()) {
+				JButton b = new JButton(new ToolAction(t));
+				b.setText(t.toString());
+				this.add(b);
+			}
+		}
+		
+		private class ToolAction extends AbstractAction {
+			private static final long serialVersionUID = 1L;
+			Tool action;
+			ToolAction(Tool action) {
+				this.action = action;
+			}
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+				toolSelected = action;
+			}
+		}
+	}
 
 	private class ButtonsBar extends JToolBar {
 		private static final long serialVersionUID = 1L;
@@ -139,7 +175,75 @@ public class GraphicInterface extends JComponent {
 	}
 
 	private GraphicInterface() {
-
+        this.setOpaque(true);
+        this.addMouseListener(new MouseHandler());
+        this.addMouseMotionListener(new MouseMotionHandler());
+	}
+	
+	private class MouseHandler extends MouseAdapter {
+		@Override
+        public void mouseReleased(MouseEvent e) {
+            mouseRect.setBounds(0, 0, 0, 0);
+            if (e.isPopupTrigger()) {
+                //showPopup(e);
+            }
+            e.getComponent().repaint();
+        }
+		
+		@Override
+        public void mousePressed(MouseEvent e) {
+            mousePt = e.getPoint();
+            
+            Cell cell;
+            
+            if((cell = overCell(mousePt.x, mousePt.y)) != null) {
+            	//do stuff with Tool
+            	if(toolSelected == Tool.Ball) {
+            		playerBall.active = true;
+            		playerBall.x = mousePt.x;
+            		playerBall.y = mousePt.y;
+            	} else if (toolSelected == Tool.Cube) {
+            		playerCube.active = true;
+            		playerCube.x = mousePt.x;
+            		playerCube.y = mousePt.y;
+            	} else if (toolSelected == Tool.Paint) {
+            		cell.occupied = !cell.occupied;
+            	}
+            	
+            }
+                        
+            e.getComponent().repaint();
+            
+            
+        }
+		
+		public Cell overCell(int mousex, int mousey) {
+			return getCell(mousex, mousey);
+		}
+	}
+	
+	private class MouseMotionHandler extends MouseMotionAdapter {
+		Point delta = new Point();
+		
+		@Override
+        public void mouseDragged(MouseEvent e) {/*
+            if (selecting) {
+                mouseRect.setBounds(
+                    Math.min(mousePt.x, e.getX()),
+                    Math.min(mousePt.y, e.getY()),
+                    Math.abs(mousePt.x - e.getX()),
+                    Math.abs(mousePt.y - e.getY()));
+                // Make selection
+            } else {
+                delta.setLocation(
+                    e.getX() - mousePt.x,
+                    e.getY() - mousePt.y);
+                // Move
+                mousePt = e.getPoint();
+            }
+            
+            e.getComponent().repaint();*/
+        }
 	}
 
 	public void generate() {
@@ -285,6 +389,10 @@ public class GraphicInterface extends JComponent {
 		position[0] = -1;
 		position[1] = -1;
 		return null;
+	}
+	private Cell getCell(int x, int y) {
+		int[] position = {0,0};
+		return getCell(x, y, position);
 	}
 
 	private void evaluateCell(Cell cell, int x, int y) {
@@ -505,6 +613,7 @@ public class GraphicInterface extends JComponent {
 				if(instance == null)
 					instance = new GraphicInterface();
 				instance.initialize();
+				f.add(instance.tool, BorderLayout.WEST);
 				f.add(instance.control, BorderLayout.NORTH);
 				f.add(new JScrollPane(instance), BorderLayout.CENTER);
 				f.pack();
@@ -518,7 +627,12 @@ public class GraphicInterface extends JComponent {
 	public void paintComponent(Graphics g) {
 		g.setColor(new Color(51,51,51));
 		g.fillRect(0, 0, getWidth(), getHeight());
-		drawCells(g);
+		//drawCells(g);
+		for(int i = 0; i < cells.length-1; i++) {
+			for(int j =0; j < cells[0].length-1; j++) {
+				cells[i][j].draw(g);
+			}
+		}
 		drawPlayers(g);
 	}
 
@@ -545,6 +659,7 @@ public class GraphicInterface extends JComponent {
 
 	private void initialize() {
 		instance.initializeCells();
+		paintBorders(instance.cells);
 	}
 
 	private void drawCells(Graphics g) {
