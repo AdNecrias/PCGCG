@@ -19,7 +19,10 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Random;
 import java.util.TreeSet;
+import java.util.function.Function;
+import java.util.function.Predicate;
 
 import javax.swing.AbstractAction;
 import javax.swing.Action;
@@ -45,6 +48,7 @@ public class GraphicInterface extends JComponent {
 	public static final int levelSizeY = 800;
 	public static final int cellSizeX = 16;
 	public static final int cellSizeY = 16;
+	public static long seed = System.nanoTime();
 
 	public Overlay currentOverlay = Overlay.None;
 	private Cell[][] cells;
@@ -270,13 +274,152 @@ public class GraphicInterface extends JComponent {
 		gems.clear();
 	}
 
-
+	private boolean checkEight(int x, int y, Function<Cell, Boolean> function) {
+		if(
+				function.apply(cells[x-1][y-1]) &&
+				function.apply(cells[x][y-1]) &&
+				function.apply(cells[x+1][y-1]) &&
+				function.apply(cells[x-1][y]) &&
+				function.apply(cells[x+1][y]) &&
+				function.apply(cells[x-1][y+1]) &&
+				function.apply(cells[x][y+1]) &&
+				function.apply(cells[x+1][y+1])
+				) {
+			return true;
+		}
+		return false;
+	}
+	private boolean checkAnyEight(int x, int y, Function<Cell, Boolean> function) {
+		if(
+				function.apply(cells[x-1][y-1]) ||
+				function.apply(cells[x][y-1]) ||
+				function.apply(cells[x+1][y-1]) ||
+				function.apply(cells[x-1][y]) ||
+				function.apply(cells[x+1][y]) ||
+				function.apply(cells[x-1][y+1]) ||
+				function.apply(cells[x][y+1]) ||
+				function.apply(cells[x+1][y+1])
+				) {
+			return true;
+		}
+		return false;
+	}
+	private boolean checkSixteen(int x, int y, Function<Cell, Boolean> function) {
+		if(
+				function.apply(cells[x-2][y-2]) &&
+				function.apply(cells[x-1][y-2]) &&
+				function.apply(cells[x][y-2]) &&
+				function.apply(cells[x+1][y-2]) &&
+				function.apply(cells[x+2][y-2]) &&
+				function.apply(cells[x-2][y-1]) &&
+				function.apply(cells[x+2][y-1]) &&
+				function.apply(cells[x-2][y]) &&
+				function.apply(cells[x+2][y]) &&
+				function.apply(cells[x-2][y+1]) &&
+				function.apply(cells[x+2][y+1]) &&
+				function.apply(cells[x-2][y+2]) &&
+				function.apply(cells[x-1][y+2]) &&
+				function.apply(cells[x][y+2]) &&
+				function.apply(cells[x+1][y+2]) &&
+				function.apply(cells[x+2][y+2])
+				) {
+			return true;
+		}
+		return false;
+	}
+	private boolean checkAnySixteen(int x, int y, Function<Cell, Boolean> function) {
+		if(
+				function.apply(cells[x-2][y-2]) ||
+				function.apply(cells[x-1][y-2]) ||
+				function.apply(cells[x][y-2]) ||
+				function.apply(cells[x+1][y-2]) ||
+				function.apply(cells[x+2][y-2]) ||
+				function.apply(cells[x-2][y-1]) ||
+				function.apply(cells[x+2][y-1]) ||
+				function.apply(cells[x-2][y]) ||
+				function.apply(cells[x+2][y]) ||
+				function.apply(cells[x-2][y+1]) ||
+				function.apply(cells[x+2][y+1]) ||
+				function.apply(cells[x-2][y+2]) ||
+				function.apply(cells[x-1][y+2]) ||
+				function.apply(cells[x][y+2]) ||
+				function.apply(cells[x+1][y+2]) ||
+				function.apply(cells[x+2][y+2])
+				) {
+			return true;
+		}
+		return false;
+	}
 
 	private void generateGems() {
-		// TODO Auto-generated method stub
+		ArrayList<Cell> coopExclusiveCells = new ArrayList<Cell>();
+		ArrayList<Cell> ballExclusiveCells = new ArrayList<Cell>();
+		ArrayList<Cell> cubeExclusiveCells = new ArrayList<Cell>();
 		
+		Function<Cell, Boolean> reachBall = new Function<Cell, Boolean>() {
+			@Override
+			public Boolean apply(Cell t) {
+				return t.reachBall;
+			}
+		};
+		Function<Cell, Boolean> reachCube = new Function<Cell, Boolean>() {
+			@Override
+			public Boolean apply(Cell t) {
+				return t.reachCube;
+			}
+		};
+		Function<Cell, Boolean> reachCoop = new Function<Cell, Boolean>() {
+			@Override
+			public Boolean apply(Cell t) {
+				return t.reachCoop;
+			}
+		};
+		@SuppressWarnings("unused") // Test
+		Function<Cell, Boolean> empty = new Function<Cell, Boolean>() {
+			@Override
+			public Boolean apply(Cell t) {
+				return !t.occupied;
+			}
+		};
+		
+		for (int i = 2; i < cells.length-3; i++) {
+			for (int j = 2; j < cells[0].length-3; j++) {
+				Cell cell = cells[i][j];
+				if(cell.reachBall && checkEight(i, j, reachBall) && !checkAnyEight(i, j, reachCube)) {
+					cell.ballExclusive = true;
+					ballExclusiveCells.add(cell);
+				}
+				if(cell.reachCube && !cell.reachBall && !checkAnyEight(i, j, reachBall) && !checkAnySixteen(i, j, reachBall)) {
+					cell.cubeExclusive = true;
+					cubeExclusiveCells.add(cell);
+				}
+				
+				if(cell.reachCoop && checkEight(i, j, reachCoop) && !checkEight(i, j, reachBall)) {
+					cell.coopExclusive = true;
+					coopExclusiveCells.add(cell);
+				}
+			}
+		}
+		
+		regenSeed();
+		Random rand = new Random(seed);
+		int id = 0;
+		if(coopExclusiveCells.size()>0) {
+			id =rand.nextInt(coopExclusiveCells.size()-1);
+			gems.add(new Gem(coopExclusiveCells.get(id)));
+		}
+		if(cubeExclusiveCells.size()>0) {
+			id = rand.nextInt(cubeExclusiveCells.size()-1);
+			gems.add(new Gem(cubeExclusiveCells.get(id)));			
+		}
 	}
 	
+	private void regenSeed() {
+		seed = System.nanoTime();
+	}
+
+
+
 	private void reachabilityCoop() {
 		int[] startPosition = {-2,-2};
 		Cell startCell = getCell(playerBall.x+50, playerBall.y+50, startPosition);
@@ -519,6 +662,9 @@ public class GraphicInterface extends JComponent {
 		cell.reachCoop=false;
 		cell.maxJumpStrenght = 0;
 		cell.maxCoopJumpStrenght = 0;
+		cell.ballExclusive=false;
+		cell.cubeExclusive=false;
+		cell.coopExclusive=false;
 	}
 
 	private boolean eightConnected(int x, int y) {
@@ -544,6 +690,7 @@ public class GraphicInterface extends JComponent {
 		int level = selectLevel(selectedFile);
 		instance().playerBall.active = false;
 		instance().playerCube.active = false;
+		clearGems();
 
 		BufferedReader input = null;
 		boolean inLevel = false;
@@ -784,7 +931,7 @@ public class GraphicInterface extends JComponent {
 	}
 
 	public enum Overlay {
-		None, Ball, Cube, JumpStrenght, Coop, CoopJumpStrenght
+		None, Ball, Cube, JumpStrenght, Coop, CoopJumpStrenght, GemExclusivity
 	}
 
 	public Cell[][] getCells() {
@@ -850,6 +997,11 @@ public class GraphicInterface extends JComponent {
 		
 		public Gem() {
 			
+		}
+		public Gem(Cell cell) {
+			this.cell = cell;
+			x = cell.x*cellSizeX;
+			y = cell.y*cellSizeY;
 		}
 		public Gem(int x, int y, Cell cell) {
 			this.x = x;

@@ -28,6 +28,9 @@ public class Cell implements Comparable<Cell>{
 	public int x, y;
 	public long id;
 	public static long idCounter=0;
+	public boolean ballExclusive=false;
+	public boolean cubeExclusive=false;
+	public boolean coopExclusive=false;
 	
 	public Cell( int leftx, int topy, int rightx, int boty ) {
 		topleft = new Point2D.Double(leftx,topy);
@@ -85,6 +88,13 @@ public class Cell implements Comparable<Cell>{
 			}
 			if(GraphicInterface.instance().currentOverlay == Overlay.Coop && reachCoop) {
 				toUse = GraphicInterface.cellCoopBackground;
+			}
+			
+			if(GraphicInterface.instance().currentOverlay == Overlay.GemExclusivity) {
+				if(cubeExclusive||ballExclusive||coopExclusive)
+					toUse = new Color((ballExclusive ? 255 : 0) , (cubeExclusive ? 255 : 0) , (coopExclusive ? 255 : 0)); 
+				else
+					toUse = Color.WHITE;
 			}
 
 			g.setColor(toUse);
