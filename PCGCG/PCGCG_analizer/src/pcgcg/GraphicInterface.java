@@ -7,6 +7,7 @@ import java.awt.EventQueue;
 import java.awt.Graphics;
 import java.awt.GridLayout;
 import java.awt.Point;
+import java.awt.Polygon;
 import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.awt.event.MouseAdapter;
@@ -49,6 +50,7 @@ public class GraphicInterface extends JComponent {
 	private Cell[][] cells;
 	private PlayerPosition playerBall = new PlayerPosition();
 	private PlayerPosition playerCube = new PlayerPosition();
+	private ArrayList<Gem> gems;
 	private ArrayList<Blob> blobs;
 	
 	private Rectangle mouseRect = new Rectangle();
@@ -67,7 +69,7 @@ public class GraphicInterface extends JComponent {
 	private Tool toolSelected = Tool.None;
 	
 	public enum Tool {
-		None, Cube, Ball, Paint;
+		None, Cube, Ball, Paint, Gem;
 	}
 	
 	private class ToolBar extends JToolBar {
@@ -208,6 +210,8 @@ public class GraphicInterface extends JComponent {
             		playerCube.y = mousePt.y;
             	} else if (toolSelected == Tool.Paint) {
             		cell.occupied = !cell.occupied;
+            	} else if (toolSelected == Tool.Gem) {
+            		gems.add(new Gem(mousePt.x, mousePt.y, cell));
             	}
             	
             }
@@ -247,6 +251,8 @@ public class GraphicInterface extends JComponent {
 	}
 
 	public void generate() {
+		clearGems();
+		repaint();
 		for (int i = 0; i < cells.length-1; i++) {
 			for (int j = 0; j < cells[0].length-1; j++) {
 				evaluateCell(cells[i][j], i, j);
@@ -254,8 +260,98 @@ public class GraphicInterface extends JComponent {
 		}
 		reachabilityCube();
 		reachabilityBall();
+		reachabilityCoop();
+		generateGems();
 	}
 
+
+
+	private void clearGems() {
+		gems.clear();
+	}
+
+
+
+	private void generateGems() {
+		// TODO Auto-generated method stub
+		
+	}
+	
+	private void reachabilityCoop() {
+		int[] startPosition = {-2,-2};
+		Cell startCell = getCell(playerBall.x+50, playerBall.y+50, startPosition);
+		if(startPosition[0] < 0 || startPosition[1] < 0) { // Error
+			System.out.println("Error - reachabilityBall");
+		}
+		TreeSet<Cell> cellsToAnalyse = new TreeSet<Cell>();
+		cellsToAnalyse.add(startCell);
+		if(!startCell.fitsBall) {
+			for(int i=0; i < 2;i++) {
+				cellsToAnalyse.add(getCell(playerBall.x+25, playerBall.y+50*i+25, startPosition));
+				cellsToAnalyse.add(getCell(playerBall.x+75, playerBall.y+50*i+25, startPosition));
+			}
+		}
+		int cnt = 0;
+		while(!cellsToAnalyse.isEmpty()) {
+			Cell current = cellsToAnalyse.first();
+			analyseCoopReachability(current, cellsToAnalyse);
+			cellsToAnalyse.remove(current);
+			cnt++;
+			if(cnt > 100000) {
+				System.out.print("[Timeout] ");
+				break;
+			}
+		}
+		System.out.println(cnt + " reachabilityCoop done.");
+	}
+	private void analyseCoopReachability(Cell current,
+			TreeSet<Cell> cellsToAnalyse) {
+		int x = current.x, y = current.y;
+		
+		if(current.fitsBall) {
+			cells[x][y].reachCoop = true;
+			
+			if(!cells[x][y+1].fitsBall) { // has ground
+				current.maxCoopJumpStrenght = 24;
+				for (int i = -1; i < 2; i++) {
+					if(cells[x+i][y-1].maxCoopJumpStrenght < 23) {
+						cells[x+i][y-1].maxCoopJumpStrenght = 23;
+						cellsToAnalyse.add(cells[x+i][y-1]);
+					}
+				}
+
+				if(cells[x-1][y].maxCoopJumpStrenght != 24) {
+					cellsToAnalyse.add(cells[x-1][y]);
+				}
+				if(cells[x+1][y].maxCoopJumpStrenght != 24) {
+					cellsToAnalyse.add(cells[x+1][y]);
+				}
+			} else {
+				if(current.maxCoopJumpStrenght > 0 && current.maxCoopJumpStrenght < 30) { // mid air?
+					for (int i = -1; i < 2; i++) {
+						if(cells[x+i][y-1].maxCoopJumpStrenght < current.maxCoopJumpStrenght-1) {
+							cells[x+i][y-1].maxCoopJumpStrenght = current.maxCoopJumpStrenght-1;
+							cellsToAnalyse.add(cells[x+i][y-1]);
+						}
+					}
+				}
+				for (int i = -1; i < 2; i++) {
+					if(!cells[x+i][y+1].reachCoop) {
+						cellsToAnalyse.add(cells[x+i][y+1]);
+					}
+				}
+				if((cells[x][y+1].reachCube && !cells[x][y+2].fitsCube)||( cells[x][y+2].reachCube && !cells[x][y+3].fitsCube)) { //TODO switch to occupiable by cube
+					current.maxCoopJumpStrenght = 30;
+					for (int i = -1; i < 2; i++) {
+						if(cells[x+i][y-1].maxCoopJumpStrenght < 29) {
+							cells[x+i][y-1].maxCoopJumpStrenght = 29;
+							cellsToAnalyse.add(cells[x+i][y-1]);
+						}
+					}
+				}
+			}
+		}
+	}
 	private void reachabilityCube() {
 		int[] startPosition = {-2,-2};
 		getCell(playerCube.x+50, playerCube.y+50, startPosition);
@@ -422,6 +518,7 @@ public class GraphicInterface extends JComponent {
 		cell.reachCoop = false;
 		cell.reachCoop=false;
 		cell.maxJumpStrenght = 0;
+		cell.maxCoopJumpStrenght = 0;
 	}
 
 	private boolean eightConnected(int x, int y) {
@@ -633,8 +730,31 @@ public class GraphicInterface extends JComponent {
 				cells[i][j].draw(g);
 			}
 		}
+		for (Gem gem : gems) {
+			drawGem(g, gem);
+		}
 		drawPlayers(g);
 	}
+
+	private void drawGem(Graphics g, Gem gem) {
+		int border = 4;
+		int size = 40;
+		if(gem.active) {
+			int npoints = 4;
+			int[] xpoints = {gem.x-size, gem.x, gem.x+size, gem.x};
+			int[] ypoints = {gem.y, gem.y+size, gem.y, gem.y-size};
+			Polygon outer = new Polygon(xpoints, ypoints, npoints);
+			int[] xopoints = {gem.x-size+border, gem.x, gem.x+size-border, gem.x};
+			int[] yopoints = {gem.y, gem.y+size-border, gem.y, gem.y-size+border};
+			Polygon inner = new Polygon(xopoints, yopoints, npoints);
+			g.setColor(Color.black);
+			g.fillPolygon(outer);
+			g.setColor(new Color(153,50,204)); // gemPink
+			g.fillPolygon(inner);
+		}
+	}
+
+
 
 	private void drawPlayers(Graphics g) {
 		int border = 4;
@@ -659,48 +779,12 @@ public class GraphicInterface extends JComponent {
 
 	private void initialize() {
 		instance.initializeCells();
+		instance.gems = new ArrayList<GraphicInterface.Gem>();
 		paintBorders(instance.cells);
 	}
 
-	private void drawCells(Graphics g) {
-		for(int i = 0; i < cells.length-1; i++) {
-			for(int j =0; j < cells[0].length-1; j++) {
-				g.setColor(cellBackground); // default
-				if(cells[i][j].occupied())
-					g.setColor(cellOccBackground);
-				else {
-					//int dist = Math.max(0,Math.min(cells[i][j].closestOccupied*1, 255)); //old
-					int dist = 255 - (cells[i][j].maxJumpStrenght*10);
-					Color distColor = new Color(255, dist, dist);
-					Color toUse = cellBackground;
-					if(currentOverlay == Overlay.Distance)
-						toUse = distColor;
-					if(currentOverlay == Overlay.Ball && (cells[i][j].fitsBall||cells[i][j].reachBall)) {
-						toUse = cellNotBallBackground;
-						if(cells[i][j].reachBall)
-							toUse = toUse.darker();
-					}
-					if(currentOverlay == Overlay.Cube && (cells[i][j].fitsCube||cells[i][j].reachCube)) {
-						toUse = cellCubeBackground;
-						if(cells[i][j].reachCube)
-							toUse = toUse.darker();
-					}
-					if(currentOverlay == Overlay.Coop && cells[i][j].coop) {
-						toUse = cellCoopBackground;
-					}
-
-					g.setColor(toUse);
-				}
-				g.fillRect((int)cells[i][j].topleft.getX(), (int)cells[i][j].topleft.getY(), (int)cells[i][j].sizeX, (int)cells[i][j].sizeY);
-				g.setColor(cellBorder);
-				g.drawRect((int)cells[i][j].topleft.getX(), (int)cells[i][j].topleft.getY(), (int)cells[i][j].sizeX, (int)cells[i][j].sizeY);
-			}
-		}
-
-	}
-
 	public enum Overlay {
-		None, Ball, Cube, Distance, Coop
+		None, Ball, Cube, JumpStrenght, Coop, CoopJumpStrenght
 	}
 
 	public Cell[][] getCells() {
@@ -756,6 +840,22 @@ public class GraphicInterface extends JComponent {
 		public int x = 0;
 		public int y = 0;
 		boolean active = false;
+	}
+	
+	private class Gem {
+		public int x = 0;
+		public int y = 0;
+		Cell cell;
+		boolean active = true;
+		
+		public Gem() {
+			
+		}
+		public Gem(int x, int y, Cell cell) {
+			this.x = x;
+			this.y = y;
+			this.cell = cell;
+		}
 	}
 
 }

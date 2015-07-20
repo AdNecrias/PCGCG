@@ -24,6 +24,7 @@ public class Cell implements Comparable<Cell>{
 	public boolean traversedCubeLeft, traversedCubeRight;
 	public int ballVisits = 0;
 	public int maxJumpStrenght=0;
+	public int maxCoopJumpStrenght=0;
 	public int x, y;
 	public long id;
 	public static long idCounter=0;
@@ -64,10 +65,14 @@ public class Cell implements Comparable<Cell>{
 		else {
 			//int dist = Math.max(0,Math.min(cells[i][j].closestOccupied*1, 255)); //old
 			int dist = 255 - (maxJumpStrenght*10);
+			int cdist = 255 - (maxCoopJumpStrenght*8);
 			Color distColor = new Color(255, dist, dist);
+			Color cdistColor = new Color(cdist, cdist, 255);
 			Color toUse = GraphicInterface.cellBackground;
-			if(GraphicInterface.instance().currentOverlay == Overlay.Distance)
+			if(GraphicInterface.instance().currentOverlay == Overlay.JumpStrenght)
 				toUse = distColor;
+			if(GraphicInterface.instance().currentOverlay == Overlay.CoopJumpStrenght)
+				toUse = cdistColor;
 			if(GraphicInterface.instance().currentOverlay == Overlay.Ball && (fitsBall||reachBall)) {
 				toUse = GraphicInterface.cellNotBallBackground;
 				if(reachBall)
@@ -78,7 +83,7 @@ public class Cell implements Comparable<Cell>{
 				if(reachCube)
 					toUse = toUse.darker();
 			}
-			if(GraphicInterface.instance().currentOverlay == Overlay.Coop && coop) {
+			if(GraphicInterface.instance().currentOverlay == Overlay.Coop && reachCoop) {
 				toUse = GraphicInterface.cellCoopBackground;
 			}
 
