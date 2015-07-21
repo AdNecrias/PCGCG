@@ -31,6 +31,7 @@ public class Cell implements Comparable<Cell>{
 	public boolean ballExclusive=false;
 	public boolean cubeExclusive=false;
 	public boolean coopExclusive=false;
+	public Blob blob;
 	
 	public Cell( int leftx, int topy, int rightx, int boty ) {
 		topleft = new Point2D.Double(leftx,topy);
@@ -63,8 +64,13 @@ public class Cell implements Comparable<Cell>{
 		// TODO Auto-generated method stub
 		
 		g.setColor(GraphicInterface.cellBackground); // default
-		if(occupied())
-			g.setColor(GraphicInterface.cellOccBackground);
+		if(occupied()) {
+			if(GraphicInterface.instance().currentOverlay == Overlay.Blob && blob!=null) {
+				g.setColor(blob.color);
+				g.setColor(blob.color.darker());
+			} else
+				g.setColor(GraphicInterface.cellOccBackground);
+			}
 		else {
 			//int dist = Math.max(0,Math.min(cells[i][j].closestOccupied*1, 255)); //old
 			int dist = 255 - (maxJumpStrenght*10);
