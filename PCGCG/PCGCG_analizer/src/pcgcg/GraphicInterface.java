@@ -685,22 +685,22 @@ public class GraphicInterface extends JComponent {
 	}
 
 	public void saveFile(File selectedFile) {
-		blobs = new ArrayList<Blob>();
+		clearBlobInfo();
 		for (int i = 3; i < cells.length-4; i++) {
 			for (int j = 3; j < cells[0].length-4; j++) {
 				Cell current = cells[i][j];
-				if(current.occupied) {/*
+				if(current.occupied) {
 					if(cells[i-1][j].blob != null) {
 						current.blob = cells[i-1][j].blob;
 						current.blob.cells.add(current);
 					} else if(cells[i][j-1].blob != null) {
 						current.blob = cells[i][j-1].blob;
 						current.blob.cells.add(current);
-					} else {*/
+					} else {
 						current.blob = new Blob(current.y, current.x, current.y+(int)current.sizeY, current.x+(int)current.sizeX);
 						current.blob.cells.add(current);
 						blobs.add(current.blob);
-					//} //TODO: Fix cubes
+					}
 				}
 			}
 		}
@@ -717,15 +717,15 @@ public class GraphicInterface extends JComponent {
 			}
 		}
 		
-		ArrayList<Obstacle> boxes = new ArrayList<GraphicInterface.Obstacle>();
+		ArrayList<Obstacle> boxes = new ArrayList<Obstacle>();
 		
 		for(Blob b: blobs) {
 			Obstacle o = new Obstacle();
 			Cell c = b.cells.get(0);
 			o.x= c.x;
 			o.y= c.y;
-			o.sizeX = (int)c.sizeX;
-			o.sizeY = (int)c.sizeY;
+			o.sizeX = (int)c.sizeX*b.xCells;
+			o.sizeY = (int)c.sizeY*b.yCells;
 			boxes.add(o);
 		}
 		
@@ -742,10 +742,19 @@ public class GraphicInterface extends JComponent {
 		protoGenerator.Drawer.drawLevels(selectedFile.getAbsolutePath(), levelsArray);
 	}
 
+	private void clearBlobInfo() {
+		for (int i = 3; i < cells.length-4; i++) {
+			for (int j = 3; j < cells[0].length-4; j++) {
+				cells[i][j].blob=null;
+			}
+		}
+		blobs = new ArrayList<Blob>();
+	}
+
+
+
 	private void sectionBlob(Blob b, ArrayList<Blob> extraBlobs) {
-		boolean canRight = true, canBottom = true;
 		ArrayList<Cell> inBlob = new ArrayList<Cell>();
-		int cntSideRight = 1, cntSideBottom = 1;
 		int i=3, j=3;
 		searchloop:
 		for (i = 3; i < cells.length -4; i++) {
@@ -755,36 +764,31 @@ public class GraphicInterface extends JComponent {
 				}
 			}
 		}
-		
-		while(canRight||canBottom) {
-			if(canRight) {
-				for(int k = i; k < i+cntSideBottom; k++) {
-					if(!b.cells.contains(cells[k][j+cntSideRight-1])) {
-						canRight = false;
-					}
-				}
-				if(canRight) {
-					cntSideRight++;
-					for(int k = i; k < i+cntSideBottom; k++) {
-						inBlob.add(cells[k][j+cntSideRight-1]);
-					}
-				
-				}
-			}
-			if(canBottom) {
-				for(int l = j; l < j+cntSideRight; l++) {
-					if(!b.cells.contains(cells[i+cntSideBottom-1][l])) {
-						canBottom = false;
-					}
-				}
-				if(canBottom) {
-					cntSideBottom++;
-					for(int l = j; l < j+cntSideRight; l++) {
-						inBlob.add(cells[i+cntSideBottom-1][l]);
-					}
-				}
-			}
+
+		//getMax x
+		int xCnt = 1;
+		while(cells[i+xCnt][j].blob != null && cells[i+xCnt][j].blob.equals(b)) {
+			inBlob.add(cells[i+xCnt][j]);
+			xCnt++;
 		}
+		int yCnt = 1;
+		boolean lineOkay = true;
+		while(lineOkay) {
+			for(int k = 0; k < xCnt; k++) {
+				if(cells[i+k][j+yCnt].blob == null || !cells[i+k][j+yCnt].blob.equals(b)) {
+					lineOkay = false;
+				}
+			}
+			if(lineOkay) {
+				for(int k = 0; k < xCnt; k++) {
+					inBlob.add(cells[i+k][j+yCnt]);
+				}
+			}
+			yCnt++;
+		}
+		//System.out.println("i,j=" + i + "," + j+ " x=" + xCnt + ", y=" + yCnt);
+		b.xCells = xCnt;
+		b.yCells = yCnt-1;
 		Blob newBlob = new Blob();
 		inBlob.add(cells[i][j]);
 		for(Cell c : b.cells) {
