@@ -219,8 +219,130 @@ public class GraphicInterface extends JComponent {
 	}
 
 	public void saveFile(File selectedFile) {
+<<<<<<< HEAD
 		// TODO Auto-generated method stub
 		
+=======
+		clearBlobInfo();
+		for (int i = 3; i < cells.length-4; i++) {
+			for (int j = 3; j < cells[0].length-4; j++) {
+				Cell current = cells[i][j];
+				if(current.occupied) {
+					if(cells[i-1][j].blob != null) {
+						current.blob = cells[i-1][j].blob;
+						current.blob.cells.add(current);
+					} else if(cells[i][j-1].blob != null) {
+						current.blob = cells[i][j-1].blob;
+						current.blob.cells.add(current);
+					} else {
+						current.blob = new Blob(current.y, current.x, current.y+(int)current.sizeY, current.x+(int)current.sizeX);
+						current.blob.cells.add(current);
+						blobs.add(current.blob);
+					}
+				}
+			}
+		}
+		ArrayList<Blob> extraBlobs = new ArrayList<Blob>();
+		while(true) {
+			extraBlobs.clear();
+			for(Blob b: blobs) {
+				sectionBlob(b, extraBlobs);
+			}
+			
+			blobs.addAll(extraBlobs);
+			if(extraBlobs.isEmpty()) {
+				break;
+			}
+		}
+		
+		ArrayList<Obstacle> boxes = new ArrayList<Obstacle>();
+		
+		for(Blob b: blobs) {
+			Obstacle o = new Obstacle();
+			Cell c = b.cells.get(0);
+			o.x= c.x;
+			o.y= c.y;
+			o.sizeX = (int)c.sizeX*b.xCells;
+			o.sizeY = (int)c.sizeY*b.yCells;
+			boxes.add(o);
+		}
+		
+		Level[] levelsArray = new Level[1];
+		levelsArray[0] = new Level();
+		levelsArray[0].setPlayer1(new PlayerComponent(playerBall.x,	playerBall.y));
+		levelsArray[0].setPlayer2(new PlayerComponent(playerCube.x,	playerCube.y));
+		for(Obstacle o: boxes) {
+			levelsArray[0].addComponent(new protoGenerator.Block(o.x*cellSizeX, o.y*cellSizeY, o.sizeX, o.sizeY));
+		}
+		for(Gem g : gems) {
+			levelsArray[0].addComponent(new protoGenerator.Gem(g.x, g.y));
+		}
+		protoGenerator.Drawer.drawLevels(selectedFile.getAbsolutePath(), levelsArray);
+	}
+
+	private void clearBlobInfo() {
+		for (int i = 3; i < cells.length-4; i++) {
+			for (int j = 3; j < cells[0].length-4; j++) {
+				cells[i][j].blob=null;
+			}
+		}
+		blobs = new ArrayList<Blob>();
+	}
+
+
+
+	private void sectionBlob(Blob b, ArrayList<Blob> extraBlobs) {
+		ArrayList<Cell> inBlob = new ArrayList<Cell>();
+		int i=3, j=3;
+		searchloop:
+		for (i = 3; i < cells.length -4; i++) {
+			for (j = 3; j < cells[0].length-4; j++) {
+				if(cells[i][j] == b.cells.get(0)) {
+					break searchloop;
+				}
+			}
+		}
+
+		//getMax x
+		int xCnt = 1;
+		while(cells[i+xCnt][j].blob != null && cells[i+xCnt][j].blob.equals(b)) {
+			inBlob.add(cells[i+xCnt][j]);
+			xCnt++;
+		}
+		int yCnt = 1;
+		boolean lineOkay = true;
+		while(lineOkay) {
+			for(int k = 0; k < xCnt; k++) {
+				if(cells[i+k][j+yCnt].blob == null || !cells[i+k][j+yCnt].blob.equals(b)) {
+					lineOkay = false;
+				}
+			}
+			if(lineOkay) {
+				for(int k = 0; k < xCnt; k++) {
+					inBlob.add(cells[i+k][j+yCnt]);
+				}
+			}
+			yCnt++;
+		}
+		//System.out.println("i,j=" + i + "," + j+ " x=" + xCnt + ", y=" + yCnt);
+		b.xCells = xCnt;
+		b.yCells = yCnt-1;
+		Blob newBlob = new Blob();
+		inBlob.add(cells[i][j]);
+		for(Cell c : b.cells) {
+			if(!inBlob.contains(c)){
+				c.blob=newBlob;
+				newBlob.cells.add(c);
+			}
+		}
+		b.cells.removeAll(newBlob.cells);
+		if(newBlob.cells.size() > 0)
+			extraBlobs.add(newBlob);
+	}
+
+	private class Obstacle {
+		int x, y, sizeX, sizeY;
+>>>>>>> 3271188a1b47535acaff8add36030585cedf3c18
 	}
 
 	public void loadFile(File selectedFile) {
