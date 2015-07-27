@@ -1,16 +1,13 @@
 package pcgcg;
 
+import java.awt.Color;
 import java.util.ArrayList;
+import java.util.Random;
 
 
 public class Blob {
 	
 	public ArrayList<Cell> cells;
-<<<<<<< HEAD
-	
-	
-
-=======
 	public int top, left, right, bottom;
 	public long id;
 	public static long idCounter=0;
@@ -41,5 +38,4 @@ public class Blob {
 		Blob b = (Blob) o;
 		return b.id == this.id;
 	}
->>>>>>> 3271188a1b47535acaff8add36030585cedf3c18
 }
