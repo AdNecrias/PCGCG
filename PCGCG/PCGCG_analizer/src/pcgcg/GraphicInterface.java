@@ -6,6 +6,7 @@ import java.awt.Dimension;
 import java.awt.EventQueue;
 import java.awt.Graphics;
 import java.awt.GridLayout;
+import java.awt.Panel;
 import java.awt.Point;
 import java.awt.Polygon;
 import java.awt.Rectangle;
@@ -19,11 +20,15 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Dictionary;
+import java.util.HashMap;
+import java.util.Hashtable;
 import java.util.Random;
 import java.util.TreeSet;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
+import javax.print.attribute.HashAttributeSet;
 import javax.swing.AbstractAction;
 import javax.swing.Action;
 import javax.swing.JButton;
@@ -31,10 +36,16 @@ import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
+import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.JSlider;
+import javax.swing.JSpinner;
 import javax.swing.JToolBar;
+import javax.swing.SpinnerNumberModel;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 
 import protoGenerator.Level;
 import protoGenerator.PlayerComponent;
@@ -51,7 +62,7 @@ public class GraphicInterface extends JComponent {
 	public static final int levelSizeY = 800;
 	public static final int cellSizeX = 16;
 	public static final int cellSizeY = 16;
-	public static long seed = System.nanoTime();
+	public static long seed = 1;
 
 	public Overlay currentOverlay = Overlay.None;
 	private Cell[][] cells;
@@ -59,6 +70,10 @@ public class GraphicInterface extends JComponent {
 	private PlayerPosition playerCube = new PlayerPosition();
 	private ArrayList<Gem> gems;
 	private ArrayList<Blob> blobs;
+	private float bias = 0.0f;
+	private float difficulty = 0.0f;
+	private float coop = 0.0f;
+	private int gemsToGenerate = 2;
 	
 	private Rectangle mouseRect = new Rectangle();
 	private Point mousePt = new Point();
@@ -81,16 +96,71 @@ public class GraphicInterface extends JComponent {
 	
 	private class ToolBar extends JToolBar {
 		private static final long serialVersionUID = 1L;
+		private JSpinner gemSpinner = new JSpinner(new SpinnerNumberModel(2, 1, 100, 1));
+		private JSpinner seedSpinner = new JSpinner(new SpinnerNumberModel(seed, 0.0, Double.MAX_VALUE-1, 1.0));
+		private JSlider biasSlider = new JSlider(-10, 10, 0);
+		private JSlider difficultySlider = new JSlider(0, 3, 0);
+	    private ChangeListener changeListener = new ChangeListener()
+	    {
+	        public void stateChanged(ChangeEvent ce)
+	        {
+	        	JSlider source = (JSlider)ce.getSource();
+			    if (!source.getValueIsAdjusting()) {
+					instance().bias = ((float)instance().tool.biasSlider.getValue())/10.0f;
+					instance().difficulty = ((float)instance().tool.difficultySlider.getValue());
+				}	
+	        }
+	    };
+	    private ChangeListener gemChangeListener = new ChangeListener()
+	    {
+	        public void stateChanged(ChangeEvent ce)
+	        {
+	        	instance().gemsToGenerate = (int) gemSpinner.getValue();
+	        	GraphicInterface.seed = ((Double) seedSpinner.getValue()).longValue();
+	        }
+	    };
 		
 		ToolBar() {
 			super(JToolBar.VERTICAL);
+
+			JPanel gemPanel = new JPanel();
+			gemPanel.setLayout(new GridLayout(3, 3));
+			gemPanel.add(new JLabel("Seed: "));
+			seedSpinner.setEditor(new JSpinner.NumberEditor(seedSpinner, "#"));
+			((JSpinner.NumberEditor)seedSpinner.getEditor()).getTextField().setColumns(12);
+			seedSpinner.addChangeListener(gemChangeListener);
+			gemPanel.add(seedSpinner);
+			gemPanel.add(new JLabel("N. Gems: "));
+			gemSpinner.addChangeListener(gemChangeListener);
+			gemPanel.add(gemSpinner);
+			this.add(gemPanel);
+			
+			Hashtable<Integer, JLabel> labels = new Hashtable<Integer, JLabel>();
+			labels.put(-10, new JLabel("Cube"));
+			labels.put(0, new JLabel("Balanced"));
+			labels.put(10, new JLabel("Ball"));
+			biasSlider.setLabelTable(labels);
+			biasSlider.setPaintLabels(true);
+			biasSlider.addChangeListener(changeListener);
+			this.add(biasSlider);
+			Hashtable<Integer, JLabel> dlabels = new Hashtable<Integer, JLabel>();
+			dlabels.put(0, new JLabel("Easier"));
+			dlabels.put(3, new JLabel("Harder"));
+			difficultySlider.setLabelTable(dlabels);
+			difficultySlider.setPaintLabels(true);
+			difficultySlider.addChangeListener(changeListener);
+			this.add(difficultySlider);
+			JPanel buttonsPanel = new JPanel();
+			buttonsPanel.setLayout(new GridLayout(24, 2));
+			
 			for (Tool t : Tool.values()) {
 				JButton b = new JButton(new ToolAction(t));
 				b.setText(t.toString());
-				this.add(b);
+				buttonsPanel.add(b);
 			}
+			this.add(buttonsPanel);
 		}
-		
+
 		private class ToolAction extends AbstractAction {
 			private static final long serialVersionUID = 1L;
 			Tool action;
@@ -404,17 +474,46 @@ public class GraphicInterface extends JComponent {
 				}
 			}
 		}
-		
-		regenSeed();
+		//TODO implement sliders
+		//regenSeed();
 		Random rand = new Random(seed);
-		int id = 0;
-		if(coopExclusiveCells.size()>0) {
-			id =rand.nextInt(coopExclusiveCells.size()-1);
-			gems.add(new Gem(coopExclusiveCells.get(id)));
-		}
-		if(cubeExclusiveCells.size()>0) {
-			id = rand.nextInt(cubeExclusiveCells.size()-1);
-			gems.add(new Gem(cubeExclusiveCells.get(id)));			
+		int cnt = 0, timeout = 100*gemsToGenerate + gemsToGenerate;
+		for(int i = 0; i < gemsToGenerate + cnt; i++) {
+			boolean success = true;
+			float bias = rand.nextFloat()*2-1, coop =rand.nextFloat()*2-1;
+			int id = 0;
+			if(coop > instance().coop) {
+				if(coopExclusiveCells.size()>0) {
+					id =rand.nextInt(coopExclusiveCells.size()-1);
+					gems.add(new Gem(coopExclusiveCells.get(id)));
+				} else {
+					success = false;
+				}
+				
+			} else {
+				if(bias > instance().bias) { // pref cube
+					if(cubeExclusiveCells.size()>0) {
+						id = rand.nextInt(cubeExclusiveCells.size()-1);
+						gems.add(new Gem(cubeExclusiveCells.get(id)));			
+					} else {
+						success = false;
+					}
+				} else { // pref ball
+					if(ballExclusiveCells.size()>0) {
+						id = rand.nextInt(ballExclusiveCells.size()-1);
+						gems.add(new Gem(ballExclusiveCells.get(id)));			
+					} else {
+						success = false;
+					}
+				}
+			}
+			if(!success) {
+				if(cnt > timeout) {
+					System.out.println("Timeout when generating gems... Are players well positioned?");
+					break;
+				}
+				cnt++;
+			}
 		}
 	}
 	
