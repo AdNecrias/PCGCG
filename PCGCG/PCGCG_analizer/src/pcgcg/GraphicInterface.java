@@ -46,6 +46,7 @@ import javax.swing.JToolBar;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
+import javax.swing.plaf.basic.BasicInternalFrameTitlePane.MaximizeAction;
 
 import protoGenerator.Level;
 import protoGenerator.PlayerComponent;
@@ -75,6 +76,33 @@ public class GraphicInterface extends JComponent {
 	private float coop = 0.0f;
 	private int gemsToGenerate = 2;
 	
+	private int[] heuristics = {
+			-1, -1, -1
+			};
+	public void setHeuristics(int balance, int colaboration, int difficulty) {
+		heuristics[0] = balance;
+		heuristics[1] = colaboration;
+		heuristics[2] = difficulty;
+	}
+	public int getHeuristicBalance(){
+		return heuristics[0];
+	}
+	public int getHeuristicColaboration(){
+		return heuristics[1];
+	}
+	public int getHeuristicDifficulty(){
+		return heuristics[2];
+	}
+	public int setHeuristicBalance(int b){
+		return heuristics[0] = b;
+	}
+	public int setHeuristicColaboration(int c){
+		return heuristics[1] = c;
+	}
+	public int setHeuristicDifficulty(int d){
+		return heuristics[2] = d;
+	}
+	
 	private Rectangle mouseRect = new Rectangle();
 	private Point mousePt = new Point();
 
@@ -96,6 +124,8 @@ public class GraphicInterface extends JComponent {
 	
 	private class ToolBar extends JToolBar {
 		private static final long serialVersionUID = 1L;
+		private JLabel hLabel = new HeuristicLabel();
+		private JPanel hPanel = new JPanel();
 		private JSpinner gemSpinner = new JSpinner(new SpinnerNumberModel(2, 1, 100, 1));
 		private JSpinner seedSpinner = new JSpinner(new SpinnerNumberModel(seed, 0.0, Double.MAX_VALUE-1, 1.0));
 		private JSlider biasSlider = new JSlider(-10, 10, 0);
@@ -135,6 +165,7 @@ public class GraphicInterface extends JComponent {
 			gemPanel.add(gemSpinner);
 			this.add(gemPanel);
 			
+			
 			Hashtable<Integer, JLabel> labels = new Hashtable<Integer, JLabel>();
 			labels.put(-10, new JLabel("Cube"));
 			labels.put(0, new JLabel("Balanced"));
@@ -159,6 +190,28 @@ public class GraphicInterface extends JComponent {
 				buttonsPanel.add(b);
 			}
 			this.add(buttonsPanel);
+			
+			hPanel.add(hLabel);
+			this.add(hPanel);
+			hPanel.setMaximumSize(new Dimension(308, 1440));
+		}
+		
+		private class HeuristicLabel extends JLabel {
+			private static final long serialVersionUID = 1L;
+			private GraphicInterface gi;
+			
+			public HeuristicLabel() {
+				super();
+				this.setText("Test");
+			}
+			
+			@Override
+			public void paint(Graphics g) {
+				gi = GraphicInterface.instance();
+				this.setText("Balance: " + gi.getHeuristicBalance() + " Colaboration: " + gi.getHeuristicColaboration() + " Difficulty: " + gi.getHeuristicDifficulty());
+				super.paint(g);
+			}
+			
 		}
 
 		private class ToolAction extends AbstractAction {
@@ -330,6 +383,11 @@ public class GraphicInterface extends JComponent {
 
 	public void generate() {
 		clearGems();
+		for (int i = 0; i < cells.length-1; i++) {
+			for (int j = 0; j < cells[0].length-1; j++) {
+				clearInfo(cells[i][j]);
+			}
+		}
 		repaint();
 		for (int i = 0; i < cells.length-1; i++) {
 			for (int j = 0; j < cells[0].length-1; j++) {
@@ -340,10 +398,53 @@ public class GraphicInterface extends JComponent {
 		reachabilityBall();
 		reachabilityCoop();
 		generateGems();
+		evaluateHeuristics();
+		repaint();
+		tool.repaint();
+		control.repaint();
 	}
 
 
 
+	private void evaluateHeuristics() {
+		int colabH=0, diffiH=0, balanH=0;
+		for(Gem g : gems) {
+			int diff = 0;
+			
+			if(g.cell.fitsCube) {
+				balanH -=1;
+			} else {
+				balanH +=1;
+			}
+			if(g.cell.coopExclusive) {
+				colabH +=1;
+				diff += (30 - g.cell.maxCoopJumpStrenght);
+			} else {
+				colabH -=1;
+				diff += Math.min(23 - g.cell.maxJumpStrenght, 30 - g.cell.maxCoopJumpStrenght);
+			}
+			//A* distance?
+			diff+= distanceToPlayer(g.cell);
+			diffiH +=diff;
+		}
+		setHeuristics(balanH, colabH, diffiH);
+	}
+	private int distanceToPlayer(Cell cell) {
+		if(cell.ballExclusive) {
+			return distance(playerBall.x, playerBall.y, cell.x, cell.y);
+		} else if (cell.cubeExclusive) {
+			return distance(playerCube.x, playerCube.y, cell.x, cell.y);
+		} else {
+			return Math.min(distance(playerBall.x, playerBall.y, cell.x, cell.y), distance(playerCube.x, playerCube.y, cell.x, cell.y));
+		}
+	}
+	
+	private int distance(int x, int y, int x2, int y2) {
+		int dx = Math.abs(x - x2);
+		int dy = Math.abs(y - y2);
+		Double dist = Math.sqrt(dx*dx + dy*dy);
+		return dist.intValue();
+	}
 	private void clearGems() {
 		gems.clear();
 	}
@@ -474,7 +575,7 @@ public class GraphicInterface extends JComponent {
 				}
 			}
 		}
-		//TODO implement sliders
+		//TODO implement sliders (missing coop slider)
 		//regenSeed();
 		Random rand = new Random(seed);
 		int cnt = 0, timeout = 100*gemsToGenerate + gemsToGenerate;
@@ -738,7 +839,6 @@ public class GraphicInterface extends JComponent {
 	}
 
 	private void evaluateCell(Cell cell, int x, int y) {
-		clearInfo(cell);
 		if(x>1&&x<levelSizeX-2&&y>1&&y<levelSizeY-2) { //if not in corner
 			if(!cell.occupied) {
 				if(eightConnected(x,y))
@@ -760,9 +860,9 @@ public class GraphicInterface extends JComponent {
 		cell.cubeArea = 0;
 		cell.fitsBall = false;
 		cell.fitsCube = false;
-		cell.reachBall=false;
+		cell.reachBall = false;
+		cell.reachCube = false;
 		cell.reachCoop = false;
-		cell.reachCoop=false;
 		cell.maxJumpStrenght = 0;
 		cell.maxCoopJumpStrenght = 0;
 		cell.ballExclusive=false;
