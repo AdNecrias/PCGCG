@@ -165,7 +165,14 @@ public class GraphicInterface extends JComponent {
 			gemPanel.add(gemSpinner);
 			this.add(gemPanel);
 
-
+			
+			Hashtable<Integer, JLabel> labels1 = new Hashtable<Integer, JLabel>();
+			labels1.put(-10, new JLabel("Non-colaborative"));
+			labels1.put(10, new JLabel("Colaborative"));
+			colabSlider.setLabelTable(labels1);
+			colabSlider.setPaintLabels(true);
+			colabSlider.addChangeListener(changeListener);
+			this.add(colabSlider);
 			Hashtable<Integer, JLabel> labels = new Hashtable<Integer, JLabel>();
 			labels.put(-10, new JLabel("Cube"));
 			labels.put(0, new JLabel("Balanced"));
