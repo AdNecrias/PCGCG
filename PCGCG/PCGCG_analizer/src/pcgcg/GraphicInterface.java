@@ -69,7 +69,9 @@ public class GraphicInterface extends JComponent {
 	private float bias = 0.0f;
 	private float difficulty = 0.0f;
 	private float coop = 0.0f;
+	private float margin = 0.1f;
 	private int gemsToGenerate = 4;
+	private int extraGemsToGenerate = 0;
 
 	private int[] heuristics = {
 			-1, -1, -1
@@ -397,9 +399,9 @@ public class GraphicInterface extends JComponent {
 	}
 
 	private void matchHeuristics() {
-		int balance = tool.biasSlider.getValue(), difficulty = 200, colaboration = tool.colabSlider.getValue();
+		float balance = ((float)tool.biasSlider.getValue())/10.0f, difficulty = 200, colaboration = ((float) tool.colabSlider.getValue())/10.0f;
 		int difficultyMarginMultiplier = 200;
-		int margin = 1;
+		float margin = getMargin();
 		boolean searching = true;
 		int timeout = 0;
 		switch (tool.difficultySlider.getValue())	{
@@ -418,28 +420,42 @@ public class GraphicInterface extends JComponent {
 		}
 		
 		while(searching) {
+			regenSeed();
+
+			if(timeout/100 > 49 && timeout != 10000) {
+				extraGemsToGenerate = timeout/1000 -5; //TODO
+				margin = getMargin() + getMargin() * (timeout/1000 -5);
+			}
+			
 			generate();
-			System.out.println(balance +", "+colaboration+", "+ difficulty + " vs " + getHeuristicBalance() + ", " + getHeuristicColaboration() + ", " + getHeuristicDifficulty()/gemsToGenerate);
-			if(getHeuristicBalance() > balance - margin && getHeuristicBalance() < balance + margin) {
-				if(getHeuristicColaboration() > colaboration - margin && getHeuristicBalance() < colaboration + margin) {
-					//if(getHeuristicDifficulty()/gemsToGenerate > difficulty - margin*difficultyMarginMultiplier && getHeuristicDifficulty()/gemsToGenerate < difficulty + margin*difficultyMarginMultiplier) {
+			System.out.println(balance +", "+colaboration+", "+ difficulty + " vs " + getHeuristicBalanceF()/gemsToGenerate + ", " + getHeuristicColaborationF()/gemsToGenerate + ", " + getHeuristicDifficulty()/gemsToGenerate + ". GemsToGenerate: " + gemsToGenerate + ", Margin: " + margin);
+			if(getHeuristicBalanceF()/gemsToGenerate >= balance - margin && getHeuristicBalanceF()/gemsToGenerate <= balance + margin) {
+				if(getHeuristicColaborationF()/gemsToGenerate >= colaboration - margin && getHeuristicColaborationF()/gemsToGenerate <= colaboration + margin) {
+					//if(getHeuristicDifficulty()/gemsToGenerate >= difficulty - margin*difficultyMarginMultiplier && getHeuristicDifficulty()/gemsToGenerate <= difficulty + margin*difficultyMarginMultiplier) {
 						searching = false;
 						System.out.println("Done!");
 					//}
-				}
+				} 
 			}
 			if(timeout++ > 9999) {
 				searching = false;
 			}
-			if(searching) {
-				regenSeed();
-			}
-			repaintAll();
 		}
+		repaintAll();
+		extraGemsToGenerate = 0;
 		System.out.println("Done in " + timeout + " regenerations.");
 	}
 
 
+private float getMargin() { //TODO make slider
+		return margin;
+	}
+private float getHeuristicBalanceF() {
+		return (float) getHeuristicBalance();
+	}
+private float getHeuristicColaborationF() {
+		return (float) getHeuristicColaboration();
+	}
 public void generate() {
 	clearGems();
 	for (int i = 0; i < cells.length-1; i++) {
@@ -640,16 +656,16 @@ private void generateGems() {
 			}
 		}
 	}
-	//TODO implement sliders (missing coop slider)
 	Random rand = new Random(seed);
-	gemsToGenerate += (rand.nextInt(2) -1);
+	gemsToGenerate += (rand.nextInt(2+extraGemsToGenerate) -1);
 	gemsToGenerate = Math.max(1, gemsToGenerate);
 	int cnt = 0, timeout = 100*gemsToGenerate + gemsToGenerate;
 	for(int i = 0; i < gemsToGenerate + cnt; i++) {
 		boolean success = true;
 		float bias = rand.nextFloat()*2-1, coop =rand.nextFloat()*2-1;
 		int id = 0;
-		if(coop > instance().coop) {
+		//System.out.println(coop + " vs " + instance().coop); //TODO
+		if(coop < instance().coop) {
 			if(coopExclusiveCells.size()>0) {
 				id =rand.nextInt(coopExclusiveCells.size()-1);
 				gems.add(new Gem(coopExclusiveCells.get(id)));
@@ -685,7 +701,7 @@ private void generateGems() {
 }
 
 public void regenSeed() {
-	seed = System.nanoTime();
+	seed = ( new Random(seed)).nextLong();
 	tool.seedSpinner.setValue(seed);
 }
 
