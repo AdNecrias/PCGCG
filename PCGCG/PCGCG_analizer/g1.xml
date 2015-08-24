@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+ <Levels>
+  <Level1>
+  <Description />
+  <Tips />
+  <BallStartingPosition X="1112" Y="232" />
+  <SquareStartingPosition X="152" Y="616" />
+  <Collectibles>
+  </Collectibles>
+  <GreenObstacles>
+  </GreenObstacles>
+  <BlackObstacles>
+   <Obstacle X="80" Y="688" width="1120" height="64" centered="false" />
+   <Obstacle X="640" Y="368" width="240" height="80" centered="false" />
+   <Obstacle X="880" Y="448" width="48" height="16" centered="false" />
+   <Obstacle X="960" Y="368" width="64" height="272" centered="false" />
+   <Obstacle X="1008" Y="304" width="224" height="64" centered="false" />
+  </BlackObstacles>
+  <YellowObstacles>
+  </YellowObstacles>
+  <GreenElevators />
+  <BlackElevators />
+  <YellowElevators />
+  <OrangeElevators />
+  <HighScores />
+ </Level1>
+</Levels>
