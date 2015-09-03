@@ -697,7 +697,6 @@ private void generateGems() {
 					while(ok) {
 						Cell above = getCell(baseTarget.x*(int)baseTarget.sizeX, baseTarget.y*(int)baseTarget.sizeY-okCnt*(int)baseTarget.sizeY);
 						if(above.occupied) {
-							System.out.println("busy " + above + " - " + baseTarget);
 							break;
 						} else {
 							target = above;
@@ -706,7 +705,7 @@ private void generateGems() {
 							ok = false;
 						}
 					}
-					System.out.println(okCnt);
+					target.coopExclusive=true;
 					gems.add(new Gem(target));			
 				} else {
 					success = false;
