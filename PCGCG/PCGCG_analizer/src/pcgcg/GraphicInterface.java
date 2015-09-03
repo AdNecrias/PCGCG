@@ -14,9 +14,11 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionAdapter;
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Hashtable;
@@ -498,17 +500,18 @@ private void evaluateHeuristics() {
 		}
 		if(g.cell.coopExclusive) {
 			colabH +=1;
-			diff += (30 - g.cell.maxCoopJumpStrenght);
+			diff += (30 - g.cell.maxCoopJumpStrenght)*10;
 		} else {
 			colabH -=1;
-			diff += Math.min(23 - g.cell.maxJumpStrenght, 30 - g.cell.maxCoopJumpStrenght);
+			diff += Math.min(23 - g.cell.maxJumpStrenght, 30 - g.cell.maxCoopJumpStrenght)*10;
 		}
 		//A* distance?
-				diff+= distanceToPlayer(g.cell);
+				diff+= distanceXToPlayer(g.cell);
 				diffiH +=diff;
 	}
 	setHeuristics(balanH, colabH, diffiH);
 }
+@SuppressWarnings("unused")
 private int distanceToPlayer(Cell cell) {
 	if(cell.ballExclusive) {
 		return distance(playerBall.x, playerBall.y, cell.x, cell.y);
@@ -516,6 +519,16 @@ private int distanceToPlayer(Cell cell) {
 		return distance(playerCube.x, playerCube.y, cell.x, cell.y);
 	} else {
 		return Math.min(distance(playerBall.x, playerBall.y, cell.x, cell.y), distance(playerCube.x, playerCube.y, cell.x, cell.y));
+	}
+}
+
+private int distanceXToPlayer(Cell cell) {
+	if(cell.ballExclusive) {
+		return Math.abs(playerBall.x-cell.x);
+	} else if (cell.cubeExclusive) {
+		return Math.abs(playerCube.x-cell.x);
+	} else {
+		return Math.min(Math.abs(playerBall.x-cell.x), Math.abs(playerCube.x-cell.x));
 	}
 }
 
@@ -677,7 +690,24 @@ private void generateGems() {
 			if(bias > instance().bias) { // pref cube
 				if(cubeExclusiveCells.size()>0) {
 					id = rand.nextInt(cubeExclusiveCells.size()-1);
-					gems.add(new Gem(cubeExclusiveCells.get(id)));			
+					Cell baseTarget = cubeExclusiveCells.get(id);
+					Cell target = cubeExclusiveCells.get(id);
+					boolean ok = true;
+					int okCnt = 0;
+					while(ok) {
+						Cell above = getCell(baseTarget.x*(int)baseTarget.sizeX, baseTarget.y*(int)baseTarget.sizeY-okCnt*(int)baseTarget.sizeY);
+						if(above.occupied) {
+							System.out.println("busy " + above + " - " + baseTarget);
+							break;
+						} else {
+							target = above;
+						}
+						if(okCnt++ > 7) {
+							ok = false;
+						}
+					}
+					System.out.println(okCnt);
+					gems.add(new Gem(target));			
 				} else {
 					success = false;
 				}
@@ -1022,8 +1052,27 @@ public void saveFile(File selectedFile) {
 		levelsArray[0].addComponent(new protoGenerator.Gem(g.x, g.y));
 	}
 	protoGenerator.Drawer.drawLevels(selectedFile.getAbsolutePath(), levelsArray);
+	
+	saveMetadata(selectedFile.getAbsolutePath());
 }
 
+private void saveMetadata(String absolutePath) {
+	File out = new File(absolutePath + ".cmeta");
+	BufferedWriter output;
+	
+	try {
+		output = new BufferedWriter(new FileWriter(out));		
+		output.write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+		
+		output.write("<Heuristics balance=\""+ getHeuristicBalance() + "\" colaboration=\""+ getHeuristicColaboration() + "\" difficulty=\""+ getHeuristicDifficulty() + "\" />\n");
+		output.write("<Seed seed=\""+ seed+"\" ngems=\""+ gemsToGenerate+"\" />\n");
+		
+		output.close();
+	} catch (IOException e) {
+		System.out.println("Path: "+ absolutePath + ".cmeta");
+		e.printStackTrace();
+	}
+}
 private void clearBlobInfo() {
 	for (int i = 3; i < cells.length-4; i++) {
 		for (int j = 3; j < cells[0].length-4; j++) {
