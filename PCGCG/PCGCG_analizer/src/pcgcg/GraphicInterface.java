@@ -24,7 +24,6 @@ import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.Random;
 import java.util.TreeSet;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 import javax.swing.AbstractAction;
@@ -309,8 +308,10 @@ public class GraphicInterface extends JComponent {
 
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
+				long time = System.currentTimeMillis();
 				instance().generate();
 				repaintAll();
+				System.out.println("Level generated in " + (System.currentTimeMillis() - time) + " ms.");
 			}
 		}
 		private class MatchHeuristicsAction extends AbstractAction {
@@ -318,8 +319,10 @@ public class GraphicInterface extends JComponent {
 
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
+				long time = System.currentTimeMillis();
 				matchHeuristics();
 				repaintAll();
+				System.out.println("Levels generated in " + (System.currentTimeMillis() - time) + " ms.");
 			}
 		}
 	}
@@ -430,12 +433,12 @@ public class GraphicInterface extends JComponent {
 			}
 			
 			generate();
-			System.out.println(balance +", "+colaboration+", "+ difficulty + " vs " + getHeuristicBalanceF()/gemsToGenerate + ", " + getHeuristicColaborationF()/gemsToGenerate + ", " + getHeuristicDifficulty()/gemsToGenerate + ". GemsToGenerate: " + gemsToGenerate + ", Margin: " + margin);
+			//System.out.println(balance +", "+colaboration+", "+ difficulty + " vs " + getHeuristicBalanceF()/gemsToGenerate + ", " + getHeuristicColaborationF()/gemsToGenerate + ", " + getHeuristicDifficulty()/gemsToGenerate + ". GemsToGenerate: " + gemsToGenerate + ", Margin: " + margin);
 			if(getHeuristicBalanceF()/gemsToGenerate >= balance - margin && getHeuristicBalanceF()/gemsToGenerate <= balance + margin) {
 				if(getHeuristicColaborationF()/gemsToGenerate >= colaboration - margin && getHeuristicColaborationF()/gemsToGenerate <= colaboration + margin) {
 					//if(getHeuristicDifficulty()/gemsToGenerate >= difficulty - margin*difficultyMarginMultiplier && getHeuristicDifficulty()/gemsToGenerate <= difficulty + margin*difficultyMarginMultiplier) {
 						searching = false;
-						System.out.println("Done!");
+						//System.out.println("Done!");
 					//}
 				} 
 			}
@@ -1139,6 +1142,7 @@ private class Obstacle {
 public void loadFile(File selectedFile) {
 	Cell[][] result=freshCells();
 	int level = selectLevel(selectedFile);
+	boolean loaded = false;
 	instance().playerBall.active = false;
 	instance().playerCube.active = false;
 	clearGems();
@@ -1245,13 +1249,67 @@ public void loadFile(File selectedFile) {
 			}
 		}
 		paintBorders(result);
-		input.close();
+		input.close();	
+		
 	} catch (FileNotFoundException e) {
 		e.printStackTrace();
 	} catch (IOException e) {
 		e.printStackTrace();
+	} finally {
+		loaded = true;
 	}
-
+	try{
+		input = new BufferedReader(new FileReader(new File(selectedFile.getAbsolutePath() + ".cmeta")));
+		String currentLine; 
+		while ((currentLine = input.readLine()) != null) {
+			String delims = "[\n\t\r<]+";
+			String tokens[] = currentLine.split(delims);
+			if(tokens[1].contains("Heuristics ")) {
+				String[] bvalues = tokens[1].split("[\"]");
+				bvalues[0] = bvalues[0].substring("Heuristics ".length()-1, bvalues[0].length());
+				int x=0, y=0, diff =0;
+				for(int i =0; i < 6; i+=2) {
+					if(bvalues[i].equals(" balance=")) {
+						x = Integer.parseInt(bvalues[i+1]);
+					}
+					if(bvalues[i].equals(" colaboration=")) {
+						y = Integer.parseInt(bvalues[i+1]);
+					}
+					if(bvalues[i].equals(" difficulty=")) {
+						diff = Integer.parseInt(bvalues[i+1]);
+					}
+				}
+				setHeuristics(x, y, diff);
+				tool.biasSlider.setValue(x);
+				tool.colabSlider.setValue(y);
+				tool.difficultySlider.setValue(Math.min(3, diff/50));
+			}
+			if(tokens[1].contains("Seed ")) {
+				String[] bvalues = tokens[1].split("[\"]");
+				bvalues[0] = bvalues[0].substring("Seed ".length()-1, bvalues[0].length());
+				long x=0;
+				int y=0;
+				for(int i =0; i < 4; i+=2) {
+					if(bvalues[i].equals(" seed=")) {
+						x = Long.parseLong(bvalues[i+1]);
+					}
+					if(bvalues[i].equals(" ngems=")) {
+						y = Integer.parseInt(bvalues[i+1]);
+					}
+				}
+				tool.seedSpinner.setValue(x);
+				tool.gemSpinner.setValue(y);
+			}
+		}
+	} catch (FileNotFoundException e) {
+		if(loaded){
+			System.out.println("No metadata file.");
+		} else {
+			e.printStackTrace();
+		}
+	} catch (IOException e) {
+		e.printStackTrace();
+	}
 	GraphicInterface.instance().setCells(result);
 	evaluateHeuristics();
 	repaintAll();
