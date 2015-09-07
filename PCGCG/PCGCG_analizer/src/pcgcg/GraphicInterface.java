@@ -70,7 +70,7 @@ public class GraphicInterface extends JComponent {
 	private float bias = 0.0f;
 	private float difficulty = 0.0f;
 	private float coop = 0.0f;
-	private float margin = 0.1f;
+	private float margin = 1.0f;
 	private int gemsToGenerate = 4;
 	private int extraGemsToGenerate = 0;
 
@@ -218,8 +218,7 @@ public class GraphicInterface extends JComponent {
 			@Override
 			public void paint(Graphics g) {
 				gi = GraphicInterface.instance();
-				int div = Math.max(1, gems.size());
-				this.setText("Balance: " + (float)gi.getHeuristicBalance()/div + " Colaboration: " + (float)gi.getHeuristicColaboration()/div + " Difficulty: " + (float)gi.getHeuristicDifficulty()/div);
+				this.setText("Balance: " + gi.getHeuristicBalance() + " Colaboration: " + getHeuristicColaboration() + " Difficulty: " + gi.getHeuristicDifficulty());
 				super.paint(g);
 			}
 
@@ -402,27 +401,28 @@ public class GraphicInterface extends JComponent {
 		public void mouseDragged(MouseEvent e) {
 		}
 	}
+	
+	private int sliderToDifficulty(int value) {
+		switch (value)	{
+		case 0:
+			return 200;
+		case 1:
+			return 350;
+		case 2:
+			return 500;
+		case 3:
+			return 750;
+		}
+		return 0;
+	}
 
 	private void matchHeuristics() {
-		float balance = ((float)tool.biasSlider.getValue())/10.0f, difficulty = 200, colaboration = ((float) tool.colabSlider.getValue())/10.0f;
-		int difficultyMarginMultiplier = 200;
+		float balance = ((float)tool.biasSlider.getValue()), difficulty = 200, colaboration = ((float) tool.colabSlider.getValue());
+		int difficultyMarginMultiplier = 150;
 		float margin = getMargin();
 		boolean searching = true;
 		int timeout = 0;
-		switch (tool.difficultySlider.getValue())	{
-		case 0:
-			difficulty = 200;
-			break;
-		case 1:
-			difficulty = 350;
-			break;
-		case 2:
-			difficulty = 500;
-			break;
-		case 3:
-			difficulty = 750;
-			break;
-		}
+		difficulty = sliderToDifficulty(tool.difficultySlider.getValue());
 		
 		while(searching) {
 			regenSeed();
@@ -433,10 +433,10 @@ public class GraphicInterface extends JComponent {
 			}
 			
 			generate();
-			//System.out.println(balance +", "+colaboration+", "+ difficulty + " vs " + getHeuristicBalanceF()/gemsToGenerate + ", " + getHeuristicColaborationF()/gemsToGenerate + ", " + getHeuristicDifficulty()/gemsToGenerate + ". GemsToGenerate: " + gemsToGenerate + ", Margin: " + margin);
-			if(getHeuristicBalanceF()/gemsToGenerate >= balance - margin && getHeuristicBalanceF()/gemsToGenerate <= balance + margin) {
-				if(getHeuristicColaborationF()/gemsToGenerate >= colaboration - margin && getHeuristicColaborationF()/gemsToGenerate <= colaboration + margin) {
-					//if(getHeuristicDifficulty()/gemsToGenerate >= difficulty - margin*difficultyMarginMultiplier && getHeuristicDifficulty()/gemsToGenerate <= difficulty + margin*difficultyMarginMultiplier) {
+			System.out.println(balance +", "+colaboration+", "+ difficulty + " vs " + getHeuristicBalanceF() + ", " + getHeuristicColaborationF() + ", " + sliderToDifficulty(getHeuristicDifficulty()) + ". GemsToGenerate: " + gemsToGenerate + ", Margin: " + margin);
+			if(getHeuristicBalanceF() >= balance - margin && getHeuristicBalanceF() <= balance + margin) {
+				if(getHeuristicColaborationF() >= colaboration - margin && getHeuristicColaborationF() <= colaboration + margin) {
+					//if(sliderToDifficulty(getHeuristicDifficulty()) >= difficulty - margin*difficultyMarginMultiplier && sliderToDifficulty(getHeuristicDifficulty()) <= difficulty + margin*difficultyMarginMultiplier) {
 						searching = false;
 						//System.out.println("Done!");
 					//}
@@ -512,7 +512,18 @@ private void evaluateHeuristics() {
 				diff+= distanceXToPlayer(g.cell);
 				diffiH +=diff;
 	}
-	setHeuristics(balanH, colabH, diffiH);
+	float ngemsMultiplier = (1.0f/gemsToGenerate)*10;
+	
+	if(diffiH < 201) {
+		diffiH = 0;
+	} else if(diffiH < 351) {
+		diffiH = 1;
+	} else if(diffiH < 501) {
+		diffiH = 2;
+	}else {
+		diffiH = 3;
+	}
+	setHeuristics((int)((float)balanH*ngemsMultiplier), (int)((float)colabH*ngemsMultiplier), diffiH);
 }
 @SuppressWarnings("unused")
 private int distanceToPlayer(Cell cell) {
@@ -673,7 +684,8 @@ private void generateGems() {
 		}
 	}
 	Random rand = new Random(seed);
-	gemsToGenerate += (rand.nextInt(2+extraGemsToGenerate) -1);
+	if(extraGemsToGenerate != 0)
+		gemsToGenerate += (rand.nextInt(2+extraGemsToGenerate) -1);
 	gemsToGenerate = Math.max(1, gemsToGenerate);
 	int cnt = 0, timeout = 100*gemsToGenerate + gemsToGenerate;
 	for(int i = 0; i < gemsToGenerate + cnt; i++) {
