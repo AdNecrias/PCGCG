@@ -68,6 +68,7 @@ public class GraphicInterface extends JComponent {
 	private PlayerPosition playerCube = new PlayerPosition();
 	private ArrayList<Blob> blobs;
 	private float bias = 0.0f;
+	@SuppressWarnings("unused")
 	private float difficulty = 0.0f;
 	private float coop = 0.0f;
 	private float margin = 1.0f;
@@ -115,6 +116,8 @@ public class GraphicInterface extends JComponent {
 	private ButtonsBar control = new ButtonsBar();
 	private ToolBar tool = new ToolBar();
 	private Tool toolSelected = Tool.None;
+	public long lastGentime;
+	public int lastNumLevels;
 
 	public enum Tool {
 		None, Cube, Ball, Paint, Gem;
@@ -218,7 +221,7 @@ public class GraphicInterface extends JComponent {
 			@Override
 			public void paint(Graphics g) {
 				gi = GraphicInterface.instance();
-				this.setText("Balance: " + gi.getHeuristicBalance() + " Colaboration: " + getHeuristicColaboration() + " Difficulty: " + gi.getHeuristicDifficulty());
+				this.setText("Balance: " + gi.getHeuristicBalance() + " Colab.: " + getHeuristicColaboration() + " Diff.: " + gi.getHeuristicDifficulty() + "   " + gi.lastNumLevels+" levels in "+gi.lastGentime + " ms.");
 				super.paint(g);
 			}
 
@@ -309,8 +312,10 @@ public class GraphicInterface extends JComponent {
 			public void actionPerformed(ActionEvent arg0) {
 				long time = System.currentTimeMillis();
 				instance().generate();
+				lastNumLevels = 1;
+				lastGentime = (System.currentTimeMillis() - time);
+				System.out.println("Level generated in " + lastGentime + " ms.");
 				repaintAll();
-				System.out.println("Level generated in " + (System.currentTimeMillis() - time) + " ms.");
 			}
 		}
 		private class MatchHeuristicsAction extends AbstractAction {
@@ -320,8 +325,9 @@ public class GraphicInterface extends JComponent {
 			public void actionPerformed(ActionEvent arg0) {
 				long time = System.currentTimeMillis();
 				matchHeuristics();
+				lastGentime = (System.currentTimeMillis() - time);
+				System.out.println(lastNumLevels + " Levels generated in " + lastGentime + " ms.");
 				repaintAll();
-				System.out.println("Levels generated in " + (System.currentTimeMillis() - time) + " ms.");
 			}
 		}
 	}
@@ -418,6 +424,7 @@ public class GraphicInterface extends JComponent {
 
 	private void matchHeuristics() {
 		float balance = ((float)tool.biasSlider.getValue()), difficulty = 200, colaboration = ((float) tool.colabSlider.getValue());
+		@SuppressWarnings("unused")
 		int difficultyMarginMultiplier = 150;
 		float margin = getMargin();
 		boolean searching = true;
@@ -448,6 +455,7 @@ public class GraphicInterface extends JComponent {
 		}
 		repaintAll();
 		extraGemsToGenerate = 0;
+		lastNumLevels = timeout;
 		System.out.println("Done in " + timeout + " regenerations.");
 	}
 
@@ -493,12 +501,12 @@ private void evaluateHeuristics() {
 	int colabH=0, diffiH=0, balanH=0;
 	for(Gem g : gems) {
 		int diff = 0;
-
-		if(g.cell.reachCube) {
-			balanH -=1;
-		} else {
-			if(!g.cell.coopExclusive) {
+		
+		if(!g.cell.coopExclusive) {
+			if(g.cell.reachBall) {
 				balanH +=1;
+			} else {
+				balanH -=1;
 			}
 		}
 		if(g.cell.coopExclusive) {
@@ -707,20 +715,27 @@ private void generateGems() {
 					id = rand.nextInt(cubeExclusiveCells.size()-1);
 					Cell baseTarget = cubeExclusiveCells.get(id);
 					Cell target = cubeExclusiveCells.get(id);
+					
+					Cell bellow = baseTarget;
+					Cell bellow2 = baseTarget;
 					boolean ok = true;
 					int okCnt = 0;
 					while(ok) {
 						Cell above = getCell(baseTarget.x*(int)baseTarget.sizeX, baseTarget.y*(int)baseTarget.sizeY-okCnt*(int)baseTarget.sizeY);
 						if(above.occupied) {
+							target = bellow2;
 							break;
 						} else {
+							bellow2 = bellow;
+							bellow = target;
 							target = above;
 						}
 						if(okCnt++ > 7) {
 							ok = false;
 						}
 					}
-					target.coopExclusive=true;
+					target.reachCube=true;
+					target.coopExclusive=false;
 					gems.add(new Gem(target));			
 				} else {
 					success = false;
