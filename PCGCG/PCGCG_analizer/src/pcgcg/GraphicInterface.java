@@ -74,6 +74,7 @@ public class GraphicInterface extends JComponent {
 	private float margin = 1.0f;
 	private int gemsToGenerate = 4;
 	private int extraGemsToGenerate = 0;
+	private int playerGamepositionCorrection = 40;
 
 	private int[] heuristics = {
 			-1, -1, -1
@@ -958,6 +959,8 @@ private void checkCubeReach(int x, int y, int speed) {
 				checkCubeReach(x, y-1, 0);
 			} else {
 				checkCubeReach(x, y-1, -1);
+				checkCubeReach(x, y-3, -1);
+				checkCubeReach(x-3, y-3, -1);
 				checkCubeReach(x-1, y, -1);
 				checkCubeReach(x-2, y, -1);
 				checkCubeReach(x-3, y, -1);
@@ -965,7 +968,10 @@ private void checkCubeReach(int x, int y, int speed) {
 			if(!cells[x+1][y].fitsCube) {
 				checkCubeReach(x+1, y-1, 1);
 				checkCubeReach(x, y-1, 0);
+				checkCubeReach(x, y-3, 0);				
 			} else {
+				checkCubeReach(x, y-3, 1);
+				checkCubeReach(x+3, y-3, 1);
 				checkCubeReach(x, y-1, 1);
 				checkCubeReach(x+1, y, 1);
 				checkCubeReach(x+2, y, 1);
@@ -1095,8 +1101,8 @@ public void saveFile(File selectedFile) {
 
 	Level[] levelsArray = new Level[1];
 	levelsArray[0] = new Level();
-	levelsArray[0].setPlayer1(new PlayerComponent(playerBall.x,	playerBall.y));
-	levelsArray[0].setPlayer2(new PlayerComponent(playerCube.x,	playerCube.y));
+	levelsArray[0].setPlayer1(new PlayerComponent(playerBall.x+playerGamepositionCorrection,	playerBall.y+playerGamepositionCorrection));
+	levelsArray[0].setPlayer2(new PlayerComponent(playerCube.x+playerGamepositionCorrection,	playerCube.y+playerGamepositionCorrection));
 	for(Obstacle o: boxes) {
 		levelsArray[0].addComponent(new protoGenerator.Block(o.x*cellSizeX, o.y*cellSizeY, o.sizeX, o.sizeY));
 	}
@@ -1190,7 +1196,6 @@ private class Obstacle {
 }
 
 public void loadFile(File selectedFile) {
-	int cubeHalfsize = 40;
 	Cell[][] result=freshCells();
 	int level = selectLevel(selectedFile);
 	boolean loaded = false;
@@ -1233,8 +1238,8 @@ public void loadFile(File selectedFile) {
 							y = Integer.parseInt(bvalues[i+1]);
 						}
 					}
-					instance().playerCube.x = x-cubeHalfsize;
-					instance().playerCube.y = y-cubeHalfsize;
+					instance().playerCube.x = x-playerGamepositionCorrection;
+					instance().playerCube.y = y-playerGamepositionCorrection;
 					instance().playerCube.active = true;
 				}
 				if(tokens[1].contains("BallStartingPosition")) {
@@ -1249,8 +1254,8 @@ public void loadFile(File selectedFile) {
 							y = Integer.parseInt(bvalues[i+1]);
 						}
 					}
-					instance().playerBall.x = x-cubeHalfsize;
-					instance().playerBall.y = y-cubeHalfsize;
+					instance().playerBall.x = x-playerGamepositionCorrection;
+					instance().playerBall.y = y-playerGamepositionCorrection;
 					instance().playerBall.active = true;
 				}
 				if(inCollectibles) {
