@@ -118,6 +118,8 @@ public class GraphicInterface extends JComponent {
 	private Tool toolSelected = Tool.None;
 	public long lastGentime;
 	public int lastNumLevels;
+	public boolean isPainting;
+	public int painting = 0;
 
 	public enum Tool {
 		None, Cube, Ball, Paint, Gem;
@@ -365,6 +367,9 @@ public class GraphicInterface extends JComponent {
 			if (e.isPopupTrigger()) {
 				//showPopup(e);
 			}
+			if(isPainting){
+				isPainting= false;
+			}
 			e.getComponent().repaint();
 		}
 
@@ -386,6 +391,9 @@ public class GraphicInterface extends JComponent {
 					playerCube.y = mousePt.y;
 				} else if (toolSelected == Tool.Paint) {
 					cell.occupied = !cell.occupied;
+					isPainting = !isPainting;
+					painting++;
+					cell.painting = painting;
 				} else if (toolSelected == Tool.Gem) {
 					gems.add(new Gem(mousePt.x, mousePt.y, cell));
 				}
@@ -405,6 +413,21 @@ public class GraphicInterface extends JComponent {
 	private class MouseMotionHandler extends MouseMotionAdapter {
 		@Override
 		public void mouseDragged(MouseEvent e) {
+			mousePt = e.getPoint();
+			if(isPainting) {
+				Cell cell;
+				
+				if((cell = overCell(mousePt.x, mousePt.y)) != null) {
+					if(cell.painting < painting) {
+						cell.occupied = !cell.occupied;
+						cell.painting = painting;
+					}
+				}
+			}
+			repaint();
+		}
+		public Cell overCell(int mousex, int mousey) {
+			return getCell(mousex, mousey);
 		}
 	}
 	
@@ -1167,6 +1190,7 @@ private class Obstacle {
 }
 
 public void loadFile(File selectedFile) {
+	int cubeHalfsize = 40;
 	Cell[][] result=freshCells();
 	int level = selectLevel(selectedFile);
 	boolean loaded = false;
@@ -1209,8 +1233,8 @@ public void loadFile(File selectedFile) {
 							y = Integer.parseInt(bvalues[i+1]);
 						}
 					}
-					instance().playerCube.x = x;
-					instance().playerCube.y = y;
+					instance().playerCube.x = x-cubeHalfsize;
+					instance().playerCube.y = y-cubeHalfsize;
 					instance().playerCube.active = true;
 				}
 				if(tokens[1].contains("BallStartingPosition")) {
@@ -1225,8 +1249,8 @@ public void loadFile(File selectedFile) {
 							y = Integer.parseInt(bvalues[i+1]);
 						}
 					}
-					instance().playerBall.x = x;
-					instance().playerBall.y = y;
+					instance().playerBall.x = x-cubeHalfsize;
+					instance().playerBall.y = y-cubeHalfsize;
 					instance().playerBall.active = true;
 				}
 				if(inCollectibles) {

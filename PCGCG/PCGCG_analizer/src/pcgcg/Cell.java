@@ -32,6 +32,7 @@ public class Cell implements Comparable<Cell>{
 	public boolean cubeExclusive=false;
 	public boolean coopExclusive=false;
 	public Blob blob;
+	public int painting;
 	
 	public Cell( int leftx, int topy, int rightx, int boty ) {
 		topleft = new Point2D.Double(leftx,topy);
